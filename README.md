@@ -78,14 +78,14 @@ def create_plot_from_data(json_str, **kwargs):
 - **`include_lin_reg`** (`bool`): Include linear regression traces.
 
 ##### Bayesian Optimization (Only for `include_lin_reg`)
-- **`penalty_factor`** (`float`): Penalty factor for Bayesian optimization (default: 0.05).
+- **`penalty_factor`** (`float`): Penalty factor to penalize many segments / high number  of linear regression lines (default: 0.05).
 - **`dimensions`** (`int`): Maximal number of segments for linear regression (default: 10).
 
 ##### AUC-related Options (Only for `include_auc`)
 - **`weighted_auc_half_life`** (`float`): Half-life for weighted AUC calculation (default: 2).
 
 ##### Smoothing Function Options (Only for `include_smooth_criminals`)
-- **`smoother_threshold`** (`float`): Threshold for the smoothing function (default: 2).
+- **`smoother_threshold`** (`float`): Threshold for the smoothing function in %. If a new point deviates only this much, the old value is preserved / copied (default: 2[%]).
 
 
 ## CLI Interface
