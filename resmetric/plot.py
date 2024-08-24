@@ -1,3 +1,4 @@
+import time
 import plotly.graph_objects as go
 import plotly.io as pio
 import numpy as np
@@ -8,10 +9,7 @@ from .metrics import (
     extract_max_dips,
     extract_mdd_from_dip,
     get_recovery,
-    calculate_auc,
-    calculate_weighted_auc,
-    calculate_inverse_weighted_auc,
-    _half_life_to_lambda,
+    calculate_kernel_auc,
     time_below_threshold,
     count_dibs_below_threshold_series,
     calculate_max_drawdown,
@@ -275,28 +273,31 @@ def create_plot_from_data(json_str, **kwargs):
 
         # Append AUC-related traces if requested
         if kwargs.get('include_auc'):
-            auc_values = calculate_auc(y_values)
+            auc_values = calculate_kernel_auc(y_values, kernel='uniform')
             auc_traces.append(go.Scatter(
                 name=f"AUC {s.name}",
                 legendgroup=f"AUC {s.name}",
+                x=np.arange(1,len(auc_values)),
                 y=auc_values,
                 mode='lines',
                 marker=dict(color=fig.layout.template.layout.colorway[i])
             ))
 
-            auc_values_exp = calculate_weighted_auc(y_values, _half_life_to_lambda(weighted_auc_half_life))
+            auc_values_exp = calculate_kernel_auc(y_values, kernel='exp', half_life=weighted_auc_half_life)
             auc_traces.append(go.Scatter(
                 name=f"AUC-exp {s.name}",
                 legendgroup=f"AUC-exp {s.name}",
+                x=np.arange(1, len(auc_values_exp)),
                 y=auc_values_exp,
                 mode='lines',
                 marker=dict(color=fig.layout.template.layout.colorway[i])
             ))
 
-            auc_values_inv = calculate_inverse_weighted_auc(y_values)
+            auc_values_inv = calculate_kernel_auc(y_values, kernel='inverse')
             auc_traces.append(go.Scatter(
                 name=f"AUC-inv {s.name}",
                 legendgroup=f"AUC-inv {s.name}",
+                x=np.arange(1, len(auc_values_inv)),
                 y=auc_values_inv,
                 mode='lines',
                 marker=dict(color=fig.layout.template.layout.colorway[i])
