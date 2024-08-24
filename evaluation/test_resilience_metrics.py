@@ -19,10 +19,10 @@ RANGE = 20
 #                - or a triangle where the middle point is at (h,k)
 # x in [x1, RANGE]: 2nd plateau of y_1
 VALUES = {
-    'root': (4, .95, 16, .85, 7, .6),  # (x0, y0, x1, y1, h, k) # V
-    'shallow': (4, .95, 16, .95, 9, .8),  # X
-    'deep': (4, .95, 16, .9, 7, .3),  # X
-    'long': (2, .9, 19, .75, 12, .6)  # V
+    'root': (4, .95, 16, .85, 7, .6),  # (x0, y0, x1, y1, h, k)
+    'shallow': (4, .95, 16, .95, 9, .8),
+    'deep': (4, .95, 16, .9, 7, .3),
+    'long': (2, .9, 19, .75, 12, .6)
 }
 
 
