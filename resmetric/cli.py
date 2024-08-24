@@ -38,6 +38,8 @@ def main():
 
     # Group for basic trace options
     basic_group = parser.add_argument_group('Core Resilience-Related Trace Options')
+    basic_group.add_argument('--all-core', action='store_true',
+                             help='Select all core resilience-related trace options.')
     basic_group.add_argument('--auc', action='store_true', help='Include AUC-related traces.')
     basic_group.add_argument('--count', action='store_true',
                              help='Include traces that count dips below the threshold.')
@@ -89,16 +91,16 @@ def main():
 
     # Convert args to a dictionary of keyword arguments
     kwargs = {
-        'include_auc': args.auc,
-        'include_count_below_thresh': args.count,
-        'include_time_below_thresh': args.time,
+        'include_auc': args.auc or args.all_core,
+        'include_count_below_thresh': args.count or args.all_core,
+        'include_time_below_thresh': args.time or args.all_core,
         'threshold': args.threshold,
         'include_draw_downs_traces': args.drawdowns_traces,
         'include_smooth_criminals': args.smooth_criminal,
         'include_dips': args.dips,
         'include_draw_downs_shapes': args.drawdowns_shapes,
-        'include_maximal_dips': args.max_dips,
-        'include_bars': args.bars,
+        'include_maximal_dips': args.max_dips or args.all_core,
+        'include_bars': args.bars or args.all_core,
         'include_derivatives': args.deriv,
         'include_lin_reg': args.lg,
         'penalty_factor': args.penalty_factor,
