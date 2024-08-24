@@ -28,6 +28,19 @@ VALUES = {
 
 # Helper function to create a synthetic dip in y-values
 def generate_parabolical_dip(test_case: str):
+    """
+    This function generates a parabolical dip of a given test case.
+    For this, it fits a parabola through (x0, y0) and (x1, y1) with the vertex's y-value of k.
+    If you have some time and want to improve your knowledge of parabola-fitting, you can work through the code.
+    If not, just accept it "as-is" ;)
+
+    Args:
+        test_case: One of the test cases as defined above in VALUES
+
+    Returns:
+        Figure as defined above in comment of VALUES
+
+    """
     def calculate_parameters(x1, y1, x2, y2, k):
         # Calculate the square roots of the differences
         sqrt_y1_k = np.sqrt(np.abs(y1 - k))
@@ -121,8 +134,8 @@ def generate_triangle_dip(test_case: str):
     x0, y0, x1, y1, x_k, k = VALUES.get(test_case)
 
     # Initialize y values with y0
-    x_values = np.arange(RANGE + 1 +2)
-    y_values = np.ones(RANGE + 1 +2) * y0
+    x_values = np.arange(RANGE + 1)
+    y_values = np.ones(RANGE + 1) * y0
 
     # Linear descent from (x0, y0) to (x_k, k)
     mask_descent = (x_values >= x0) & (x_values <= x_k)
@@ -138,12 +151,6 @@ def generate_triangle_dip(test_case: str):
 
     # Create the plotly figure
     fig = go.Figure()
-    y_values = (
-    0, 0.9, 0.9, 0.9, 0.87, 0.84, 0.81, 0.78, 0.75, 0.72, 0.69, 0.6599999999999999, 0.63, 0.6, 0.6214285714285714,
-    0.6428571428571428, 0.6642857142857143, 0.6857142857142857, 0.7071428571428572, 0.7285714285714285, 0.75, 0.75, 0.75)
-    y_values = (
-    0.9, 0.9, 0.9, 0.9, 0.9, .9,.9,.9)
-    x_values = np.arange(len(y_values))
 
     fig.add_trace(go.Scatter(x=x_values, y=y_values, mode='lines+markers', name=test_case, line=dict(color='blue')))
 
