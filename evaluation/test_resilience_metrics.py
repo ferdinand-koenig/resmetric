@@ -157,8 +157,8 @@ def generate_triangle_dip(test_case: str):
     return fig
 
 
-class TestResilienceMetricsParabolic(unittest.TestCase):
-    def test_parabolic_root(self):
+class TestParabolic(unittest.TestCase):
+    def test_p_root(self):
         test_case_name = "root"
 
         # Create synthetic y-values with a dip
@@ -187,7 +187,7 @@ class TestResilienceMetricsParabolic(unittest.TestCase):
         # Assert that more than one trace is added
         self.assertGreater(len(fig.data), 1, "Figure should have more than one trace after processing")
 
-    def test_parabolic_shallow(self):
+    def test_p_shallow(self):
         test_case_name = "shallow"
 
         # Create synthetic y-values with a dip
@@ -216,7 +216,7 @@ class TestResilienceMetricsParabolic(unittest.TestCase):
         # Assert that more than one trace is added
         self.assertGreater(len(fig.data), 1, "Figure should have more than one trace after processing")
 
-    def test_parabolic_deep(self):
+    def test_p_deep(self):
         test_case_name = "deep"
 
         # Create synthetic y-values with a dip
@@ -245,7 +245,7 @@ class TestResilienceMetricsParabolic(unittest.TestCase):
         # Assert that more than one trace is added
         self.assertGreater(len(fig.data), 1, "Figure should have more than one trace after processing")
 
-    def test_parabolic_long(self):
+    def test_p_long(self):
         test_case_name = "long"
 
         # Create synthetic y-values with a dip
@@ -275,8 +275,8 @@ class TestResilienceMetricsParabolic(unittest.TestCase):
         self.assertGreater(len(fig.data), 1, "Figure should have more than one trace after processing")
 
 
-class TestResilienceMetricsTriangular(unittest.TestCase):
-    def test_triangular_root(self):
+class TestTriangular(unittest.TestCase):
+    def test_t_root(self):
         test_case_name = "root"
 
         # Create synthetic y-values with a dip
@@ -305,7 +305,7 @@ class TestResilienceMetricsTriangular(unittest.TestCase):
         # Assert that more than one trace is added
         self.assertGreater(len(fig.data), 1, "Figure should have more than one trace after processing")
 
-    def test_triangular_shallow(self):
+    def test_t_shallow(self):
         test_case_name = "shallow"
 
         # Create synthetic y-values with a dip
@@ -334,7 +334,7 @@ class TestResilienceMetricsTriangular(unittest.TestCase):
         # Assert that more than one trace is added
         self.assertGreater(len(fig.data), 1, "Figure should have more than one trace after processing")
 
-    def test_triangular_deep(self):
+    def test_t_deep(self):
         test_case_name = "deep"
 
         # Create synthetic y-values with a dip
@@ -363,7 +363,7 @@ class TestResilienceMetricsTriangular(unittest.TestCase):
         # Assert that more than one trace is added
         self.assertGreater(len(fig.data), 1, "Figure should have more than one trace after processing")
 
-    def test_triangular_long(self):
+    def test_t_long(self):
         test_case_name = "long"
 
         # Create synthetic y-values with a dip

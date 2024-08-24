@@ -7,103 +7,81 @@ from skopt import gp_minimize
 from skopt.space import Integer
 
 
-def calculate_auc(y_values):
+def calculate_kernel_auc(y_values, kernel='uniform', lambda_weight=None, half_life=None, custom_kernel=None):
     """
-    Calculate the Area Under the Curve (AUC) using a cumulative average approach.
-
-    This function computes the AUC by calculating the cumulative average of the
-    input values at each point. The AUC is a measure of the aggregate value of
-    the data points, providing a way to evaluate the overall level of the input
-    series.
+    Calculate the Area Under the Curve (AUC) using a kernel-weighted approach.
+    Supports uniform, inverse, and exponential decay kernels, or a custom kernel function.
 
     Parameters:
-    - y_values (array-like): Input data array. Should be a list or array of numerical values.
+    - y_values (list): Input list of y-values representing the data series.
+    - kernel (str): The kernel to use for weighting ('uniform', 'inverse', 'exp', 'custom').
+    - lambda_weight (float): The lambda parameter for the exponential decay kernel.
+    - half_life (float): The half-life for the exponential decay kernel. If provided, it overrides `lambda_weight`.
+    - custom_kernel (function): A custom kernel function (anonymous lambda) that takes a single argument `d`.
 
     Returns:
-    - list: A list of AUC values at each point in the input data. The length of this
-            list will be the same as the input `y_values`, where each entry corresponds
-            to the AUC calculated up to that point.
+    - auc_values (list): List of AUC values calculated at each point in the series.
 
-    Example:
-    >>> y_values = [1, 2, 3, 4]
-    >>> calculate_auc(y_values)
-    [1.0, 1.5, 2.0, 2.5]
-
-    Notes:
-    - The function computes the AUC incrementally, adding the current value to a cumulative
-      sum and then dividing by the current index plus one. This provides a running average
-      of the AUC values.
+    Raises:
+    - ValueError: If an unsupported kernel is selected or if required parameters are missing.
     """
-    auc_values = []
-    cumulative_sum = 0
-    for i, y in enumerate(y_values):
-        cumulative_sum += y
-        auc = cumulative_sum / (i + 1)
-        auc_values.append(auc)
-    return auc_values
 
+    def _half_life_to_lambda(half_life):
+        """Convert half-life to decay parameter lambda."""
+        return math.log(2) / half_life
 
-def calculate_inverse_weighted_auc(y_values):
-    """
-    Calculate the AUC with inverse weighting.
+    # Define kernel functions for different kernel types
+    def uniform_kernel(d):
+        # Uniform kernel: Equal weight for all data points
+        return 1
 
-    Parameters:
-    - y_values: List of y-values for which the AUC is calculated.
+    def inverse_kernel(d):
+        # Inverse kernel: Weight decreases as the distance increases
+        return 1 / (d + 1)
 
-    Returns:
-    - auc_values: List of inverse weighted AUC values.
-    """
-    auc_values = []
-    cumulative_sum = 0
-    weights_sum = 0
+    def exp_kernel(d, lambda_weight):
+        # Exponential decay kernel: Weight decreases exponentially with distance
+        return np.exp(-lambda_weight * d)
 
-    for i, y in enumerate(y_values):
-        # Calculate weight based on inverse function
-        index = len(y_values) - i
-        weight = 1 / (index + 1)  # Note: i + 1 to avoid division by zero
+    if half_life is not None:
+        lambda_weight = _half_life_to_lambda(half_life)
 
-        # Update cumulative sum with weighted value
-        cumulative_sum += y * weight
+    # Select the appropriate kernel function based on user input
+    if kernel == 'uniform':
+        kernel_func = uniform_kernel
+    elif kernel == 'inverse':
+        kernel_func = inverse_kernel
+    elif kernel == 'exp':
+        if lambda_weight is None:
+            # Raise error if exponential kernel is selected but no lambda is provided
+            raise ValueError("lambda_weight or half_life must be provided for exponential kernel.")
+        kernel_func = lambda d: exp_kernel(d, lambda_weight)
+    elif kernel == 'custom':
+        if custom_kernel is None:
+            # Raise error if custom kernel is selected but no function is provided
+            raise ValueError("A custom kernel function must be provided when using the 'custom' kernel option.")
+        kernel_func = custom_kernel
+    else:
+        # Raise error if an unsupported kernel is selected
+        raise ValueError(
+            f"Unsupported kernel '{kernel}'. Supported kernels are 'uniform', 'inverse', 'exp', or 'custom'.")
 
-        # Update the sum of weights
-        weights_sum += weight
+    auc_values = []  # List to store the calculated AUC values for time series
 
-        # Calculate the weighted AUC up to the current point
-        auc = cumulative_sum / weights_sum
-        auc_values.append(auc)
+    # Loop through each point in the data series
+    for i in range(1, len(y_values)):
+        weighted_sum = 0  # Initialize weighted sum for the current AUC calculation
+        kernel_sum = 0  # Initialize sum of kernel weights
 
-    return auc_values
+        # Calculate the AUC using trapezoidal rule with kernel weighting
+        for j in range(1, i + 1):
+            weight = kernel_func(i - j)  # Calculate the weight using the selected kernel
+            trapezoid_area = ((y_values[j - 1] + y_values[j]) / 2) * weight  # Calculate trapezoid area
+            weighted_sum += trapezoid_area  # Add to weighted sum
+            kernel_sum += weight  # Add to kernel weight sum
 
-
-def calculate_weighted_auc(y_values, lambda_weight):
-    """
-    Calculate the weighted AUC with exponential decay weighting.
-
-    Parameters:
-    - y_values: List of y-values for which the AUC is calculated.
-    - lambda_weight: Weighting factor for the exponential decay function.
-
-    Returns:
-    - auc_values: List of weighted AUC values.
-    """
-    auc_values = []
-    cumulative_sum = 0
-    weights_sum = 0
-
-    for i, y in enumerate(y_values):
-        # Calculate weight based on exponential decay
-        index = len(y_values) - i
-        weight = np.exp(-lambda_weight * index)
-
-        # Update cumulative sum with weighted value
-        cumulative_sum += y * weight
-
-        # Update the sum of weights
-        weights_sum += weight
-
-        # Calculate the weighted AUC up to the current point
-        auc = cumulative_sum / weights_sum
-        auc_values.append(auc)
+        # Store the normalized AUC value in the list
+        auc_values.append(weighted_sum / kernel_sum)
 
     return auc_values
 
@@ -135,19 +113,6 @@ def _make_color_pale_hex(hex_color, factor=0.5):
 
     # Convert back to hex and return
     return "#{:02X}{:02X}{:02X}".format(r_pale, g_pale, b_pale)
-
-
-def _half_life_to_lambda(half_life):
-    """
-    Convert half-life to decay parameter lambda.
-
-    Parameters:
-    half_life (float): The half-life in units.
-
-    Returns:
-    float: The decay parameter lambda.
-    """
-    return math.log(2) / half_life
 
 
 def time_below_threshold(y_values, threshold):
