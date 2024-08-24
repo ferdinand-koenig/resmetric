@@ -11,9 +11,9 @@ python -m unittest evaluation.test_resilience_metrics
 In project root
 
 ```commandline
-python -m unittest evaluation.test_resilience_metrics.TestResilienceMetricsTriangular.test_triangular_long
+python -m unittest evaluation.test_resilience_metrics.TestTriangular.test_t_long
 ```
 
 ```commandline
-python -m unittest evaluation.test_resilience_metrics.TestResilienceMetricsTriangular.test_triangular_long
+python -m unittest evaluation.test_resilience_metrics.TestParabolic.test_p_root
 ```
