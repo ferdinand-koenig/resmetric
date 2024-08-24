@@ -44,7 +44,7 @@ def main():
     basic_group.add_argument('--drawdowns_traces', action='store_true',
                              help='Include the values of local drawdowns as traces.')
     basic_group.add_argument('--drawdowns_shapes', action='store_true',
-                             help='Include the shapes of local draw-downs.')
+                             help='Include the shapes of local drawdowns.')
     basic_group.add_argument('--smooth_criminal', action='store_true',
                              help='Include smoothed series (Hee-Hee! Ow!).')
     basic_group.add_argument('--dips', action='store_true', help='Include detected dips.')
