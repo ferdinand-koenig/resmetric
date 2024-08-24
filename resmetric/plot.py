@@ -334,7 +334,8 @@ def create_plot_from_data(json_str, **kwargs):
         # Update the original series with a pale color
         s.update(
             mode='lines+markers',
-            marker=dict(color=_make_color_pale_hex(fig.layout.template.layout.colorway[i]))
+            marker=dict(color=_make_color_pale_hex(fig.layout.template.layout.colorway[i])),
+            line=dict(color=_make_color_pale_hex(fig.layout.template.layout.colorway[i]))
         )
 
     # Include threshold line if requested
