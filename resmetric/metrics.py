@@ -245,27 +245,24 @@ def calculate_max_drawdown(time_series):
 
 def detect_peaks(y_values):
     """
-        Detect peaks in a time series and return peak properties.
+        Detect and return peaks in a time series.
 
         Parameters:
-        - y_values: List of y-values for peak detection.
-        - prominence: Minimum prominence of peaks.
-        - width: Minimum width of peaks.
+        - y_values: List-like object of y-values for peak detection.
 
         Returns:
         - peaks: Indices of detected peaks.
-        - properties: Properties of detected peaks including prominence and width.
     """
     if not len(y_values) > 1:
         raise ValueError("y_values must be at least two values")
 
-    peaks, _ = find_peaks(y_values)  #, prominence=prominence, width=width)
-    if y_values[0] > y_values[1]:
-        # Add 0 to the beginning of the peaks list if condition is met
-        peaks = np.insert(peaks, 0, 0)
-    if y_values[-1] > y_values[-2]:
-        # Add the index of the last value to the peaks list if condition is met
-        peaks = np.append(peaks, len(y_values) - 1)
+    # Add padding with -1 at the beginning and end of y_values
+    padded_y_values = np.concatenate(([-1], y_values, [-1]))
+
+    peaks, _ = find_peaks(padded_y_values)  #, prominence=prominence, width=width)
+
+    # Adjust indices to correspond to the original y_values
+    peaks -= 1  # Subtract 1 to correct for the padding
 
     return peaks
 
@@ -360,6 +357,9 @@ def extract_max_dips(entries):
         list: A list of maximal dip entries, each represented as a tuple (t0, t1).
     """
     entries = list(entries)  # call by copy
+    # If there are no dips, there cannot be maximal dips
+    if not entries:
+        return []
 
     def _filter_max_timestamp(entries, target_t):
         """
