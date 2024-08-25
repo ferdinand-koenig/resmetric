@@ -6,7 +6,7 @@ import pwlf
 from .metrics import (
     detect_peaks,
     _get_dips,
-    extract_max_dips,
+    extract_max_dips_based_on_maxs,
     extract_mdd_from_dip,
     get_recovery,
     calculate_kernel_auc,
@@ -18,6 +18,7 @@ from .metrics import (
     _perform_bayesian_optimization,
     _make_color_pale_hex
 )
+
 
 def create_plot_from_data(json_str, **kwargs):
     """
@@ -102,21 +103,78 @@ def create_plot_from_data(json_str, **kwargs):
         global_x_min = min(global_x_min, x_values[0])
         global_x_max = max(global_x_max, x_values[-1])
 
-        # Dip extraction (Find where the shocks are)
-        maxs = detect_peaks(np.array(y_values))
-        y_mins = np.array(y_values)[mins]
-        dips = _get_dips(y_values, maxs=maxs)
-        max_dips = extract_max_dips(dips)
+        ################################################
+        # Preprocessing
+        # Append smooth criminal traces if requested
+        if kwargs.get('include_smooth_criminals'):
+            y_values = smoother(list(y_values), threshold=smoother_threshold)
+            smooth_criminals.append(go.Scatter(
+                name=f"Smoothed {s.name}",
+                y=y_values,
+                mode='lines+markers',
+                marker=dict(color=fig.layout.template.layout.colorway[i]),
+                legendgroup=f'Smoothed {s.name}'
+            ))
 
-        # TODO only on demand
-        mdd_info = extract_mdd_from_dip(max_dips, mins, y_values)
+        ################################################
+        # [T-Ag] Handle all the agnostic features
+        # [T-Ag] Append AUC-related traces if requested
+        if kwargs.get('include_auc'):
+            auc_values = calculate_kernel_auc(y_values, kernel='uniform')
+            auc_traces.append(go.Scatter(
+                name=f"AUC {s.name}",
+                legendgroup=f"AUC {s.name}",
+                x=np.arange(1, len(auc_values) + 1),
+                y=auc_values,
+                mode='lines',
+                marker=dict(color=fig.layout.template.layout.colorway[i])
+            ))
 
-        # Compute 1st and 2nd derivatives
-        first_derivative = np.gradient(y_values)
-        second_derivative = np.gradient(first_derivative)
+            auc_values_exp = calculate_kernel_auc(y_values, kernel='exp', half_life=weighted_auc_half_life)
+            auc_traces.append(go.Scatter(
+                name=f"AUC-exp {s.name}",
+                legendgroup=f"AUC-exp {s.name}",
+                x=np.arange(1, len(auc_values_exp) + 1),
+                y=auc_values_exp,
+                mode='lines',
+                marker=dict(color=fig.layout.template.layout.colorway[i])
+            ))
 
-        # Append derivative traces if requested
+            auc_values_inv = calculate_kernel_auc(y_values, kernel='inverse')
+            auc_traces.append(go.Scatter(
+                name=f"AUC-inv {s.name}",
+                legendgroup=f"AUC-inv {s.name}",
+                x=np.arange(1, len(auc_values_inv) + 1),
+                y=auc_values_inv,
+                mode='lines',
+                marker=dict(color=fig.layout.template.layout.colorway[i])
+            ))
+
+        # [T-Ag] Append count and time traces if requested
+        if kwargs.get('include_count_below_thresh'):
+            count_below_thresh_traces.append(go.Scatter(
+                y=count_dibs_below_threshold_series(y_values, threshold),
+                name=f"Count below {threshold}% - {s.name}",
+                legendgroup=f"Count below {threshold}% - {s.name}",
+                marker=dict(color=fig.layout.template.layout.colorway[i]),
+                yaxis='y3'
+            ))
+
+        if kwargs.get('include_time_below_thresh'):
+            time_below_thresh_traces.append(go.Scatter(
+                y=time_below_threshold(y_values, threshold),
+                name=f"Time below {threshold}% - {s.name}",
+                legendgroup=f"Time below {threshold}% - {s.name}",
+                marker=dict(color=fig.layout.template.layout.colorway[i]),
+                yaxis='y2'
+            ))
+
+        # [T-Ag] Append derivative traces if requested (Experimental)
         if kwargs.get('include_derivatives'):
+            # Compute 1st and 2nd derivatives
+            first_derivative = np.gradient(y_values)
+            second_derivative = np.gradient(first_derivative)
+
             derivative_traces.extend([
                 go.Scatter(
                     y=first_derivative,
@@ -135,25 +193,14 @@ def create_plot_from_data(json_str, **kwargs):
                 )
             ])
 
-        # Fit the piecewise linear model and add to traces if requested
-        if kwargs.get('include_lin_reg'):
-            # Perform Bayesian Optimization to find the optimal number of segments
-            optimal_segments = _perform_bayesian_optimization(x_values, y_values,
-                                                              penalty_factor=penalty_factor, dimensions=dimensions)
-            pwlf_model = pwlf.PiecewiseLinFit(x_values, y_values)
-            pwlf_model.fit(optimal_segments)
-            y_hat = pwlf_model.predict(x_values)
-            lin_reg_traces.append(
-                go.Scatter(
-                    x=x_values,
-                    y=y_hat,
-                    mode='lines',
-                    line=dict(color=fig.layout.template.layout.colorway[i]),
-                    name=f'PWLF ({optimal_segments} Segments) - {s.name}',
-                    legendgroup=f'PWLF - {s.name}'
-                )
-            )
+        ###############
+        # Calculate Dips (Local dips). This is not one shock / resilience case!
+        # Required for include_dips and max_dips dip detection algorithm
+        maxs = detect_peaks(np.array(y_values))
+        dips = _get_dips(y_values, maxs=maxs)
 
+        ###############
+        # [Advanced][T-Ag] Handle all the advanced agnostic features
         # Append traces for dips and drawdowns if requested
         if kwargs.get('include_dips'):
             for b, e in dips:
@@ -178,6 +225,7 @@ def create_plot_from_data(json_str, **kwargs):
                 ))
 
         if kwargs.get('include_draw_downs_shapes'):
+            mins = detect_peaks(-np.array(y_values))
             for mini in mins:
                 next_smaller = _find_next_smaller(maxs, mini)
                 if next_smaller is None:
@@ -193,136 +241,6 @@ def create_plot_from_data(json_str, **kwargs):
                     )
                 )
 
-        if kwargs.get('include_maximal_dips'):
-            for max_dip, info in mdd_info.items():
-                maximal_dips_shapes.append(
-                    go.Scatter(
-                        x=[max_dip[0], max_dip[1]],
-                        y=[y_values[max_dip[0]], y_values[max_dip[0]]],
-                        mode='lines',
-                        line=dict(dash='dot', color=fig.layout.template.layout.colorway[i]),
-                        name=f'Max Dips - {s.name}',
-                        legendgroup=f'Max Dips + MDD + rel. Rec - {s.name}'
-                    )
-                )
-                maximal_dips_shapes.append(
-                    go.Scatter(
-                        x=[max_dip[1]],
-                        y=[y_values[max_dip[0]]],
-                        mode='markers',
-                        marker=dict(symbol='x', color=fig.layout.template.layout.colorway[i]),
-                        name=f'Max Dips - {s.name}',
-                        legendgroup=f'Max Dips + MDD + rel. Rec - {s.name}'
-                    )
-                )
-                maximal_dips_shapes.append(
-                    go.Scatter(
-                        x=[info['line'][0][0], info['line'][1][0]],
-                        y=[info['line'][0][1], info['line'][1][1]],
-                        mode='lines',
-                        line=dict(color=fig.layout.template.layout.colorway[i], width=2, dash='dash'),
-                        name=f'Max Drawdown {s.name}',
-                        legendgroup=f'Max Dips + MDD + rel. Rec - {s.name}'
-                    )
-                )
-                maximal_dips_bars.append(
-                    go.Bar(
-                        x=[info['line'][0][0]],
-                        y=[info['value']],
-                        width=1,
-                        marker=dict(color=fig.layout.template.layout.colorway[i]),
-                        opacity=0.25,
-                        name=f'MDD + rel. Rec Bars - {s.name}',
-                        legendgroup=f'MDD + rel. Rec Bars - {s.name}',
-                    )
-                )
-
-            recovery_info = get_recovery(y_values, max_dips)
-            if kwargs.get('include_bars'):
-                for e, recovery in recovery_info.items():
-                    maximal_dips_bars.append(
-                        go.Bar(
-                            x=[recovery['line'][0][0]],
-                            y=[recovery['relative_recovery']],
-                            width=1,
-                            marker=dict(color=fig.layout.template.layout.colorway[i]),
-                            opacity=0.25,
-                            name=f'Rel. Recovery - {s.name}',
-                            legendgroup=f'MDD + rel. Rec Bars - {s.name}',
-                        )
-                    )
-                    maximal_dips_shapes.append(
-                        go.Scatter(
-                            x=[recovery['line'][0][0], recovery['line'][1][0]],
-                            y=[recovery['line'][0][1], recovery['line'][1][1]],
-                            mode='lines',
-                            line=dict(dash='dot', color=fig.layout.template.layout.colorway[i]),
-                            name=f'Recovery Line {s.name}',
-                            legendgroup=f'Max Dips + MDD + rel. Rec - {s.name}',
-                        )
-                    )
-
-        # Append smooth criminal traces if requested
-        if kwargs.get('include_smooth_criminals'):
-            smooth_criminals.append(go.Scatter(
-                name=f"Smoothed {s.name}",
-                y=smoother(list(y_values), threshold=smoother_threshold),
-                mode='lines+markers',
-                marker=dict(color=fig.layout.template.layout.colorway[i]),
-                legendgroup=f'Smoothed {s.name}'
-            ))
-
-        # Append AUC-related traces if requested
-        if kwargs.get('include_auc'):
-            auc_values = calculate_kernel_auc(y_values, kernel='uniform')
-            auc_traces.append(go.Scatter(
-                name=f"AUC {s.name}",
-                legendgroup=f"AUC {s.name}",
-                x=np.arange(1,len(auc_values)+1),
-                y=auc_values,
-                mode='lines',
-                marker=dict(color=fig.layout.template.layout.colorway[i])
-            ))
-
-            auc_values_exp = calculate_kernel_auc(y_values, kernel='exp', half_life=weighted_auc_half_life)
-            auc_traces.append(go.Scatter(
-                name=f"AUC-exp {s.name}",
-                legendgroup=f"AUC-exp {s.name}",
-                x=np.arange(1, len(auc_values_exp)+1),
-                y=auc_values_exp,
-                mode='lines',
-                marker=dict(color=fig.layout.template.layout.colorway[i])
-            ))
-
-            auc_values_inv = calculate_kernel_auc(y_values, kernel='inverse')
-            auc_traces.append(go.Scatter(
-                name=f"AUC-inv {s.name}",
-                legendgroup=f"AUC-inv {s.name}",
-                x=np.arange(1, len(auc_values_inv)+1),
-                y=auc_values_inv,
-                mode='lines',
-                marker=dict(color=fig.layout.template.layout.colorway[i])
-            ))
-
-        # Append count and time traces if requested
-        if kwargs.get('include_count_below_thresh'):
-            count_below_thresh_traces.append(go.Scatter(
-                y=count_dibs_below_threshold_series(y_values, threshold),
-                name=f"Count below {threshold}% - {s.name}",
-                legendgroup=f"Count below {threshold}% - {s.name}",
-                marker=dict(color=fig.layout.template.layout.colorway[i]),
-                yaxis='y3'
-            ))
-
-        if kwargs.get('include_time_below_thresh'):
-            time_below_thresh_traces.append(go.Scatter(
-                y=time_below_threshold(y_values, threshold),
-                name=f"Time below {threshold}% - {s.name}",
-                legendgroup=f"Time below {threshold}% - {s.name}",
-                marker=dict(color=fig.layout.template.layout.colorway[i]),
-                yaxis='y2'
-            ))
-
         # Append drawdown traces if requested
         if kwargs.get('include_draw_downs_traces'):
             drawdown_traces.append(go.Scatter(
@@ -332,6 +250,112 @@ def create_plot_from_data(json_str, **kwargs):
                 marker=dict(color=fig.layout.template.layout.colorway[i]),
                 yaxis='y3'
             ))
+
+        ################################################
+        # [T-Dip] Dip Detection
+        # MaxDips Detection (Detects with the help of peaks)
+        max_dips = extract_max_dips_based_on_maxs(dips)
+        # TODO add threshold dip
+
+        # For a dip, get the maximal draw down (1- Robustness) Information and Recovery Information
+        # Both infos are used later for adding the bars
+        mdd_info = extract_mdd_from_dip(max_dips, y_values)
+        recovery_info = get_recovery(y_values, max_dips)
+
+        # Draw the detected dips
+        for max_dip, info in mdd_info.items():
+            # Draw Recovery Time Line
+            maximal_dips_shapes.append(
+                go.Scatter(
+                    x=[max_dip[0], max_dip[1]],
+                    y=[y_values[max_dip[0]], y_values[max_dip[0]]],
+                    mode='lines',
+                    line=dict(dash='dot', color=fig.layout.template.layout.colorway[i]),
+                    name=f'Max Dips - {s.name}',
+                    legendgroup=f'Max Dips - {s.name}'
+                )
+            )
+            maximal_dips_shapes.append(
+                go.Scatter(
+                    x=[max_dip[1]],
+                    y=[y_values[max_dip[0]]],
+                    mode='markers',
+                    marker=dict(symbol='x', color=fig.layout.template.layout.colorway[i]),
+                    name=f'Max Dips - {s.name}',
+                    legendgroup=f'Max Dips - {s.name}'
+                )
+            )
+            # Draw Maximal Drawdown
+            maximal_dips_shapes.append(
+                go.Scatter(
+                    x=[info['line'][0][0], info['line'][1][0]],
+                    y=[info['line'][0][1], info['line'][1][1]],
+                    mode='lines',
+                    line=dict(color=fig.layout.template.layout.colorway[i], width=2, dash='dash'),
+                    name=f'Max Drawdown {s.name}',
+                    legendgroup=f'Max Dips - {s.name}'
+                )
+            )
+
+        for _, recovery in recovery_info.items():
+            maximal_dips_shapes.append(
+                go.Scatter(
+                    x=[recovery['line'][0][0], recovery['line'][1][0]],
+                    y=[recovery['line'][0][1], recovery['line'][1][1]],
+                    mode='lines',
+                    line=dict(dash='dot', color=fig.layout.template.layout.colorway[i]),
+                    name=f'Recovery Line {s.name}',
+                    legendgroup=f'Max Dips - {s.name}',
+                )
+            )
+
+        # [Experimental] [T-Dip] Fit the piecewise linear model and add to traces if requested
+        if kwargs.get('include_lin_reg'):
+            # Perform Bayesian Optimization to find the optimal number of segments
+            optimal_segments = _perform_bayesian_optimization(x_values, y_values,
+                                                              penalty_factor=penalty_factor, dimensions=dimensions)
+            pwlf_model = pwlf.PiecewiseLinFit(x_values, y_values)
+            pwlf_model.fit(optimal_segments)
+            y_hat = pwlf_model.predict(x_values)
+            lin_reg_traces.append(
+                go.Scatter(
+                    x=x_values,
+                    y=y_hat,
+                    mode='lines',
+                    line=dict(color=fig.layout.template.layout.colorway[i]),
+                    name=f'PWLF ({optimal_segments} Segments) - {s.name}',
+                    legendgroup=f'PWLF - {s.name}'
+                )
+            )
+
+        ###############################
+        # [T-Dip] Core Resilience
+        if kwargs.get('include_bars'):
+            for max_dip, info in mdd_info.items():
+                maximal_dips_bars.append(
+                    go.Bar(
+                        x=[info['line'][0][0]],
+                        y=[1 - info['value']],
+                        width=1,
+                        marker=dict(color=fig.layout.template.layout.colorway[i]),
+                        opacity=0.25,
+                        name=f'Robustness - {s.name}',
+                        legendgroup=f'Robustness + rel. Rec Bars - {s.name}',
+                    )
+                )
+            for _, recovery in recovery_info.items():
+                maximal_dips_bars.append(
+                    go.Bar(
+                        x=[recovery['line'][0][0]],
+                        y=[recovery['relative_recovery']],
+                        width=1,
+                        marker=dict(color=fig.layout.template.layout.colorway[i]),
+                        opacity=0.25,
+                        name=f'Rel. Recovery - {s.name}',
+                        legendgroup=f'Robustness + rel. Rec Bars - {s.name}',
+                    )
+                )
+
 
         # Update the original series with a pale color
         s.update(
@@ -344,7 +368,7 @@ def create_plot_from_data(json_str, **kwargs):
     if kwargs.get('include_time_below_thresh') or kwargs.get('include_count_below_thresh'):
         threshold_line.append(go.Scatter(
             x=[global_x_min, global_x_max],  # Extend the line across the global x-axis range
-            y=[threshold/100, threshold/100],
+            y=[threshold / 100, threshold / 100],
             mode='lines',
             name=f'Threshold: {threshold}%',
             line=dict(dash='dash', color='red')
@@ -402,7 +426,7 @@ def create_plot_from_data(json_str, **kwargs):
 
     # Update the figure with new data and layout
     fig = go.Figure(data=all_traces, layout=fig.layout)
-    fig.update_layout(barmode='overlay',margin=dict(l=10, r=20, t=10, b=10), legend=dict(
+    fig.update_layout(barmode='overlay', margin=dict(l=10, r=20, t=10, b=10), legend=dict(
         x=.02,
         y=.98,
         xanchor='left',

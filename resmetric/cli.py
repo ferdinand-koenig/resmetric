@@ -28,37 +28,50 @@ def plot_from_json_file(json_file, silent=False, save_path=None, **kwargs):
 def main():
     parser = argparse.ArgumentParser(
         description='Generate and display or save a Plotly figure from JSON data with optional traces and analyses.')
+    # TODO Tracks description / Figure
 
     # Required argument
     parser.add_argument('json_file', type=str, help='Path to the JSON file containing the data.')
 
     preprocessing_group = parser.add_argument_group('Preprocessing Options')
     preprocessing_group.add_argument('--smooth_criminal', action='store_true',
-                                     help='Smooth the series with a threshold-based value update filter (Hee-Hee! Ow!).')
+                                     help='Smooth the series with a threshold-based value update filter '
+                                          '(Hee-Hee! Ow!).')
+
+    agnostic_group = parser.add_argument_group('[T-Ag] Core Resilience-Related Trace Options')
+    agnostic_group.add_argument('--auc', action='store_true', help='Include AUC-related traces.')
+    agnostic_group.add_argument('--count', action='store_true',
+                                help='Include traces that count dips below the threshold.')
+    agnostic_group.add_argument('--time', action='store_true',
+                                help='Include traces that accumulate time below the threshold.')
+    agnostic_group.add_argument('--threshold', type=float, default=80,
+                                help='Threshold for count and time traces in percent (default: 80).')
+
+    dip_detect_group = parser.add_argument_group('[T-Dip] Dip Detection Algorithms')
+    dip_detect_group.add_argument('--max_dips', action='store_true',
+                                  help='Detect maximal dips based on local maxima')
+    dip_detect_group.add_argument('--threshold-dip', action='store_true',
+                                  help='detect dips based on threshold')
 
     # Group for basic trace options
-    basic_group = parser.add_argument_group('Core Resilience-Related Trace Options')
+    basic_group = parser.add_argument_group('[T-Dip] Core Resilience-Related Trace Options')
+    #TODO rename all core
     basic_group.add_argument('--all-core', action='store_true',
                              help='Select all core resilience-related trace options.')
-    basic_group.add_argument('--auc', action='store_true', help='Include AUC-related traces.')
-    basic_group.add_argument('--count', action='store_true',
-                             help='Include traces that count dips below the threshold.')
-    basic_group.add_argument('--time', action='store_true',
-                             help='Include traces that accumulate time below the threshold.')
-    basic_group.add_argument('--threshold', type=float, default=80,
-                             help='Threshold for count and time traces in percent (default: 80).')
-    basic_group.add_argument('--max_dips', action='store_true',
-                             help='Include maximal dips, maximal draw-downs, and recoveries')
+    # TODO add AUC for T-Dip
     basic_group.add_argument('--bars', action='store_true', help='Include bars for MDD and recovery.')
 
-    anti_fragility_group = parser.add_argument_group('Resilience-Related Metrics over Time Options ("Anti-Fragility")')
+    anti_fragility_group = parser.add_argument_group('[T-Dip] Resilience-Related Metrics over Time Options ('
+                                                     '"Anti-Fragility")')
     anti_fragility_group.add_argument('--place-holder', action='store_true', help='place holder')
 
     experimental_group = parser.add_argument_group('Experimental Options [To be expanded in the future]')
-    experimental_group.add_argument('--deriv', action='store_true', help='Include derivatives traces.')
-    experimental_group.add_argument('--lg', action='store_true', help='Include linear regression traces.')
+    experimental_group.add_argument('--deriv', action='store_true',
+                                    help='Include derivatives traces. [T-Ag]')
+    experimental_group.add_argument('--lg', action='store_true',
+                                    help='Include linear regression traces. [T-Dip]')
 
-    fine_group = parser.add_argument_group('[Advanced] Fine-Grained Analysis Trace Options')
+    fine_group = parser.add_argument_group('[Advanced][T-Ag] Fine-Grained Analysis Trace Options')
     fine_group.add_argument('--dips', action='store_true', help='Include all detected dips.')
     fine_group.add_argument('--drawdowns_traces', action='store_true',
                             help='Include the values of local drawdowns as traces.')

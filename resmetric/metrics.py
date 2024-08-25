@@ -218,9 +218,6 @@ def detect_peaks(y_values):
         Returns:
         - peaks: Indices of detected peaks.
     """
-    if not len(y_values) > 1:
-        raise ValueError("y_values must be at least two values")
-
     # Add padding with -1 at the beginning and end of y_values
     padded_y_values = np.concatenate(([-2], y_values, [-2]))
 
@@ -311,7 +308,7 @@ def _get_dips(values, maxs=None):
     return dips  # Return the list of detected dips
 
 
-def extract_max_dips(entries):
+def extract_max_dips_based_on_maxs(entries):
     """
     Extract maximal dips from a list of timestamp tuples (t0, t1).
 
@@ -361,7 +358,7 @@ def extract_max_dips(entries):
         Since I myself forgot how this piece of art works, I recorded the calls and returned values of
         _filter_max_timestamp with a toy example.
         Example:
-        >>> extract_max_dips([(0,2),(0,4),(2,4),(4,6),(4,7),(6,8),(7,9)])
+        >>> extract_max_dips_based_on_maxs([(0,2),(0,4),(2,4),(4,6),(4,7),(6,8),(7,9)])
         Call _filter_max_timestamp with entries [(0, 2), (0, 4), (2, 4), (4, 6), (4, 7), (6, 8), (7, 9)] and target 0
         returned (0, 4) and [(2, 4), (4, 6), (4, 7), (6, 8), (7, 9)]
         
@@ -394,7 +391,6 @@ def extract_mdd_from_dip(max_dips, values):
     Parameters:
     - max_dips (list of tuples): A list where each tuple represents a dip. Each tuple contains two elements:
       the start and end indices of the dip (e.g., (start_index, end_index)).
-    - mins (list of int): A list of indices where the minima occur.
     - values (list or array): A list or array of values corresponding to the data points.
 
     Returns:
@@ -408,7 +404,6 @@ def extract_mdd_from_dip(max_dips, values):
 
     Example:
     >>> max_dips = [(5, 10), (15, 20)]
-    >>> mins = [7, 17]
     >>> values = [10, 20, 30, 25, 30, 28, 20, 18, 22, 25, 30, 35, 40, 38, 36, 30, 25, 22, 20, 18]
     >>> result = extract_mdd_from_dip(max_dips, mins, values)
     >>> print(result)
@@ -423,39 +418,41 @@ def extract_mdd_from_dip(max_dips, values):
         }
     }
     """
-    # TODO In future, a dip is not necessarily defined based on the maxima, therefore find the mins w.r.t. the dips
-    mins = detect_peaks(-np.array(values))
-
-    # Convert the indices of minimum points to their corresponding values
-    mins_values = np.array(values)[mins]
-
-    # Combine the minimum indices and their values into a list of tuples (index, value)
-    min_points = [point for point in zip(mins, mins_values)]
 
     # Dictionary to store the MDD (Maximum Drawdown) information for each dip
     MDDs = {}
 
     # Iterate over each maximum dip (represented as a tuple of start and end indices)
-    for max_dip in max_dips:
-        # Extract all minimum points that lie within the range of the current dip
-        mins_in_max_dip = [point for point in min_points if max_dip[0] <= point[0] <= max_dip[1]]
+    for start, end in max_dips:
+        # Extract the y-values within the dip range
+        dip_values = np.array(values[start:end+1])
+
+        # Detect local minima within the dip by inverting the values
+        minima_indices = detect_peaks(-dip_values)
 
         # Ensure that there is at least one minimum point within the dip range
-        assert len(mins_in_max_dip) > 0, f"No minimum found within the dip range {max_dip}"
+        assert len(minima_indices) > 0, f"No minimum found within the dip range {(start, end)}"
 
-        # Find the minimum point with the lowest value in the current dip
-        min_in_dip = min(mins_in_max_dip, key=lambda x: x[1])
+        # Identify the index and value of the local minimum within the dip
+        min_index_in_dip = minima_indices[np.argmin(dip_values[minima_indices])]
+        min_value = dip_values[min_index_in_dip]
+        min_index = start + min_index_in_dip
 
-        # Retrieve the maximum value at the start of the dip (before the drawdown occurs)
-        max_value_before_dip = values[max_dip[0]]
+        # Step 3: Find the local maximum in the range before the local minimum
+        # Detect local maxima
+        maxima_indices = detect_peaks(dip_values[:min_index_in_dip])
+        # Ensure that there is at least one minimum point within the dip range
+        assert len(maxima_indices) > 0, f"No maximum found within the dip range {(start, end)} before {min_index}"
+        max_before_min_in_dip = np.argmax(dip_values[maxima_indices])
+        max_value = dip_values[max_before_min_in_dip]
 
         # Calculate the Maximum Drawdown (MDD) as a percentage of the max value before the dip
-        MDD_value = (max_value_before_dip - min_in_dip[1]) / max_value_before_dip
+        MDD_value = (max_value - min_value) / max_value
 
         # Store the MDD value and the corresponding vertical line in the dictionary
-        MDDs[max_dip] = {
+        MDDs[(start, end)] = {
             "value": MDD_value,  # MDD value as a percentage
-            "line": (min_in_dip, (min_in_dip[0], max_value_before_dip))  # Vertical line for visualization
+            "line": ((min_index, min_value), (min_index, max_value))  # Vertical line for visualization
         }
 
     # Return the dictionary containing MDD information for each dip

@@ -112,7 +112,7 @@ from resmetric.plot import create_plot_from_data
 fig = go.Figure()  # Example: create a basic figure
 
 # Customize the figure (e.g., add traces, update layout)
-fig.add_trace(go.Scatter(x=[1, 2, 3], y=[4, 5, 6], mode='lines+markers'))
+fig.add_trace(go.Scatter(x=[0, 1, 2], y=[.4, .5, .6], mode='lines+markers'))
 
 # Get the JSON representation of the figure
 json_data = fig.to_json()
