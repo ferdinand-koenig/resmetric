@@ -477,6 +477,19 @@ def smoother(values, threshold=2):
 
 
 def get_recovery(y_values, max_dips):
+    """
+    Calculate the recovery metrics based on the maximum dips.
+
+    Parameters:
+    - y_values (list or array): The y-values for the data points.
+    - max_dips (list of tuples): List of tuples representing the dips (start_index, end_index).
+
+    Returns:
+    - dict: Dictionary where keys are end indices of the dips and values are dictionaries containing:
+      - 'relative_recovery': The relative recovery difference.
+      - 'absolute_recovery': The absolute recovery difference.
+      - 'line': A tuple representing a vertical line for visualization.
+    """
     recovery = {}  # key: position
     # value: dict(recovery= value, line=((),()))
     for b, e in max_dips:
@@ -557,34 +570,78 @@ def _perform_bayesian_optimization(x_values, y_values, dimensions=10, penalty_fa
     return int(result.x[0])
 
 
-def resilience_over_time(y_values, dips):
-    # Pairs of (t0, t1) where t0 demarcates the start of a dip and t1 the end
-    # dips = [(0,14), (20, 28), (50, 60), (65, 70)]
+def resilience_over_time(dips_resilience):
+    """
+    Calculates the differential quotient of resilience metrics over time from a dictionary of dips and their corresponding resilience metrics.
 
-    # calculate some res_metrics (at end of dip because there we know all the metrics
-    # res_metrics = [(14, 0.8), (28, 0.9), (50, 0.7), (70, 0.75)]
-    res_metrics = []
+    Parameters:
+    - dips_resilience (dict): A dictionary where keys are tuples representing dips (start, end) and values are dictionaries with resilience metrics.
+      Example:
+      {
+        (3, 7): {"robustness": 0.5, "recovery": 0.8},
+        (10, 42): {"robustness": 0.7, "recovery": 0.5},
+        (69, 75): {"robustness": 0.8, "recovery": 0.7}
+      }
 
-    for dip in dips:
+    Returns:
+    - dict: A dictionary with metrics as keys and their differential quotients and overall mean values.
+      Example:
+      {
+        "robustness": {
+            "diff_q": [(42, 0.2), (75, 0.1)],
+            "overall": 0.15
+        },
+        "recovery": {
+            "diff_q": [(42, -0.3), (75, 0.2)],
+            "overall": -0.05
+        }
+      }
+    """
+    # Initialize a dictionary to store results
+    results = {}
 
+    # Extract metrics from the first entry
+    if not dips_resilience:
+        return results  # Return empty result if no data
 
-    # calculate differential quotients
-    # Initialize an empty list to store the results
-    diff_quotients = []
-    # Loop through the list, except for the last element
-    for i in range(len(res_metrics) - 1):
-        x1, y1 = res_metrics[i]
-        x2, y2 = res_metrics[i + 1]
+    # Get the metrics from the first entry
+    first_dip = next(iter(dips_resilience))
+    available_metrics = set(dips_resilience[first_dip].keys())
 
-        # Calculate the differential quotient
-        d = (y2 - y1) / (x2 - x1)
+    # Check that these metrics are present in all entries
+    for metrics_dict in dips_resilience.values():
+        available_metrics.intersection_update(metrics_dict.keys())
 
-        # Append the result to the list
-        diff_quotients.append((x2, d))
+    # Calculate differential quotients and overall mean for each metric
+    for metric in available_metrics:
+        # Initialize lists for differential quotients and values
+        diff_q = []
+        prev_end = None
+        prev_value = None
 
-    mean_antifragility = np.mean([d for _, d in diff_quotients])
-    return diff_quotients, mean_antifragility
+        for (start, end), metrics_dict in dips_resilience.items():
+            if metric in metrics_dict:
+                value = metrics_dict[metric]
+                if prev_value is not None:
+                    # Calculate differential quotient
+                    quotient = (value - prev_value) / (end - prev_end)
+                    diff_q.append((end, quotient))
 
-    # Display a single metric,
-    # display the differential quotients ( as lines e.g., dot-dashed)
-    # Display The overall one
+                # Update previous values
+                prev_end = end
+                prev_value = value
+
+        # Calculate overall mean differential quotient
+        if diff_q:
+            mean_diff_q = sum(q for _, q in diff_q) / len(diff_q)
+        else:
+            mean_diff_q = None  # Handle the case where no differential quotients were calculated
+
+        # Store results
+        results[metric] = {
+            "diff_q": diff_q,
+            "overall": mean_diff_q
+        }
+
+    return results
+

@@ -2,4 +2,4 @@
 @REM Adapt the last line for the case you want to test during development.
 pip uninstall -y resmetric
 pip install .
-resmetric-cli --count --max_dips --bars ".\example\fig.json"
+resmetric-cli --max_dips --bars --max-dip-auc --calc-res-over-time ".\example\fig.json"

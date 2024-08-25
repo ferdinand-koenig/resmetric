@@ -39,7 +39,9 @@ def main():
                                           '(Hee-Hee! Ow!).')
 
     agnostic_group = parser.add_argument_group('[T-Ag] Core Resilience-Related Trace Options')
-    agnostic_group.add_argument('--auc', action='store_true', help='Include AUC-related traces.')
+    agnostic_group.add_argument('--auc', action='store_true',
+                                help='Include AUC-related traces. '
+                                     '(AUC devided by the length of time frame and different kernels applied)')
     agnostic_group.add_argument('--count', action='store_true',
                                 help='Include traces that count dips below the threshold.')
     agnostic_group.add_argument('--time', action='store_true',
@@ -55,15 +57,18 @@ def main():
 
     # Group for basic trace options
     basic_group = parser.add_argument_group('[T-Dip] Core Resilience-Related Trace Options')
-    #TODO rename all core
-    basic_group.add_argument('--all-core', action='store_true',
-                             help='Select all core resilience-related trace options.')
-    # TODO add AUC for T-Dip
+    # basic_group.add_argument('--all-core', action='store_true',
+    #                          help='Select all core resilience-related trace options.')
+    basic_group.add_argument('--max-dip-auc', action='store_true',
+                             help='Include AUC bars for the AUC of one maximal dip (AUC devided by the length of the '
+                                  'time frame)')
     basic_group.add_argument('--bars', action='store_true', help='Include bars for MDD and recovery.')
 
     anti_fragility_group = parser.add_argument_group('[T-Dip] Resilience-Related Metrics over Time Options ('
                                                      '"Anti-Fragility")')
-    anti_fragility_group.add_argument('--place-holder', action='store_true', help='place holder')
+    anti_fragility_group.add_argument('--calc-res-over-time', action='store_true',
+                                      help='For every Core Resilience-Related Trace [T-Dip], '
+                                           'calculate the differential quotient')
 
     experimental_group = parser.add_argument_group('Experimental Options [To be expanded in the future]')
     experimental_group.add_argument('--deriv', action='store_true',
@@ -104,22 +109,24 @@ def main():
 
     # Convert args to a dictionary of keyword arguments
     kwargs = {
-        'include_auc': args.auc or args.all_core,
-        'include_count_below_thresh': args.count or args.all_core,
-        'include_time_below_thresh': args.time or args.all_core,
+        'include_auc': args.auc,
+        'include_max_dip_auc': args.max_dip_auc,
+        'include_count_below_thresh': args.count,
+        'include_time_below_thresh': args.time,
         'threshold': args.threshold,
         'include_draw_downs_traces': args.drawdowns_traces,
         'include_smooth_criminals': args.smooth_criminal,
         'include_dips': args.dips,
         'include_draw_downs_shapes': args.drawdowns_shapes,
-        'include_maximal_dips': args.max_dips or args.all_core,
-        'include_bars': args.bars or args.all_core,
+        'include_maximal_dips': args.max_dips,
+        'include_bars': args.bars,
         'include_derivatives': args.deriv,
         'include_lin_reg': args.lg,
         'penalty_factor': args.penalty_factor,
         'dimensions': args.dimensions,
         'weighted_auc_half_life': args.weighted_auc_half_life,
-        'smoother_threshold': args.smoother_threshold
+        'smoother_threshold': args.smoother_threshold,
+        'calc_res_over_time': args.calc_res_over_time #TODO update README.md
     }
 
     plot_from_json_file(args.json_file, silent=args.silent, save_path=args.save, **kwargs)

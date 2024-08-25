@@ -16,7 +16,9 @@ from .metrics import (
     _find_next_smaller,
     smoother,
     _perform_bayesian_optimization,
-    _make_color_pale_hex
+    _make_color_pale_hex,
+    resilience_over_time,
+    get_max_dip_auc
 )
 
 
@@ -33,7 +35,10 @@ def create_plot_from_data(json_str, **kwargs):
         Optional keyword arguments to include or exclude specific traces and
         analyses:
 
-        - include_auc (bool): Include AUC-related traces.
+        - include_auc (bool): Include AUC-related traces. (AUC devided by the length of the time frame and
+          different kernels applied)
+        - include_max_dip_auc (bool): Include AUC bars for the AUC of one maximal dip
+          (AUC devided by the length of the time frame)
         - include_count_below_thresh (bool): Include traces counting dips below
           the threshold.
         - include_time_below_thresh (bool): Include traces accumulating time
@@ -49,7 +54,7 @@ def create_plot_from_data(json_str, **kwargs):
         - include_draw_downs_shapes (bool): Include shapes of local draw-downs.
         - include_maximal_dips (bool): Include maximal dips, maximal draw-downs,
           and recoveries.
-        - include_bars (bool): Include bars for MDD and recovery.
+        - include_bars (bool): Include bars for robustness, recovery and recovery time.
         - include_derivatives (bool): Include derivatives traces.
         - include_lin_reg (bool): Include linear regression traces.
         - penalty_factor (float): Penalty factor for Bayesian Optimization
@@ -83,6 +88,8 @@ def create_plot_from_data(json_str, **kwargs):
     dips_horizontal_shapes = []
     derivative_traces = []
     lin_reg_traces = []
+    antifrag_diff_qu_traces = []
+    max_dip_auc_bars =[]
 
     # Retrieve optional arguments with defaults
     threshold = kwargs.get('threshold', 80)
@@ -256,11 +263,13 @@ def create_plot_from_data(json_str, **kwargs):
         # MaxDips Detection (Detects with the help of peaks)
         max_dips = extract_max_dips_based_on_maxs(dips)
         # TODO add threshold dip
+        # TODO based on user input / labels
 
         # For a dip, get the maximal draw down (1- Robustness) Information and Recovery Information
         # Both infos are used later for adding the bars
         mdd_info = extract_mdd_from_dip(max_dips, y_values)
         recovery_info = get_recovery(y_values, max_dips)
+        max_dip_auc_info = get_max_dip_auc(y_values, max_dips)
 
         # Draw the detected dips
         for max_dip, info in mdd_info.items():
@@ -296,6 +305,20 @@ def create_plot_from_data(json_str, **kwargs):
                     legendgroup=f'Max Dips - {s.name}'
                 )
             )
+
+            if kwargs.get('include_max_dip_auc'):
+                # And make bars for the AUC of each dip
+                max_dip_auc_bars.append(
+                    go.Bar(
+                        x=[max_dip[1]],
+                        y=[max_dip_auc_info[max_dip]],
+                        width=1,
+                        marker=dict(color=fig.layout.template.layout.colorway[i]),
+                        opacity=0.25,
+                        name=f'Max Dip {max_dip} (Local) AUC - {s.name}',
+                        legendgroup=f'Max Dip (Local) AUC - {s.name}',
+                    )
+                )
 
         for _, recovery in recovery_info.items():
             maximal_dips_shapes.append(
@@ -356,6 +379,61 @@ def create_plot_from_data(json_str, **kwargs):
                     )
                 )
 
+        ##############################
+        # [T-Dip] "antiFragility"
+        # mdd_info = extract_mdd_from_dip(max_dips, y_values) # Robustness
+        #  recovery_info = get_recovery(y_values, max_dips)
+        # AUC
+        # length
+        if (kwargs.get('calc_res_over_time') and
+                (kwargs.get('include_bars') or kwargs.get('include_dip_auc'))):
+            # Construct input
+            dips_resilience = {d: {} for d in max_dips}
+            if kwargs.get('include_bars'):
+                assert set(dips_resilience.keys()) == set(mdd_info.keys()), "Keys do no match"
+                for dip, mdd in mdd_info.items():
+                    dips_resilience[dip]['robustness'] = 1 - mdd['value']  # TODO add robustness as bars
+                    dips_resilience[dip]['recovery'] = recovery_info[dip[1]]['relative_recovery']
+                    dips_resilience[dip]['(recovery time)^-1'] = 1/(dip[1] - dip[0])  # TODO add recovery time as bars
+
+            if kwargs.get('include_max_dip_auc'):
+                assert set(dips_resilience.keys()) == set(max_dip_auc_info.keys()), "Keys do no match"
+                for dip, auc in max_dip_auc_info.items():
+                    dips_resilience[dip]['auc'] = auc
+
+            # take output and draw the traces
+            for metric, metric_change in resilience_over_time(dips_resilience).items():
+                antifrag_diff_qu_traces.append(
+                    go.Scatter(
+                        x=[end for end, _ in metric_change.get('diff_q')],
+                        y=[quotient for _, quotient in metric_change.get('diff_q')],
+                        mode='lines+markers',
+                        line=dict(color=fig.layout.template.layout.colorway[i],
+                                  dash='dot'),
+                        marker=dict(
+                            symbol='cross',
+                            size=8,
+                            color='black'
+                        ),
+                        name=f'Diff. quot. of {metric} - {s.name}',
+                        hovertext=f'Diff. quot. of {metric} - <br>{s.name}',
+                        legendgroup=f'Antifragility - {s.name}',
+                        yaxis='y5' if metric != '(recovery time)^-1' else 'y5'
+                    )
+                )
+                antifrag_diff_qu_traces.append(
+                    go.Scatter(
+                        x=[global_x_min, global_x_max],  # Extend the line across the global x-axis range
+                        y=[metric_change.get('overall'), metric_change.get('overall')],
+                        mode='lines',
+                        name=f'Mean Diff. quot. of {metric} - {s.name}',
+                        hovertext=f'Mean Diff. quot. of {metric} - <br>{s.name}',
+                        legendgroup=f'Antifragility - {s.name}',
+                        line=dict(dash='dash', color='black'),
+                        yaxis='y5' if metric != '(recovery time)^-1' else 'y5',
+                        hoverinfo='x+y+text',  # Show x, y, and hover text
+                    )
+                )
 
         # Update the original series with a pale color
         s.update(
@@ -394,6 +472,14 @@ def create_plot_from_data(json_str, **kwargs):
             anchor='free',
             side='right',
             autoshift=True
+        ),
+        yaxis5 = dict(
+            title='Differential Quotient "Antifragility"',
+            overlaying='y',
+            anchor='free',
+            side='right',
+            autoshift=True,
+            zeroline=True
         )
     )
 
@@ -423,6 +509,10 @@ def create_plot_from_data(json_str, **kwargs):
         all_traces += derivative_traces
     if kwargs.get('include_lin_reg'):
         all_traces += lin_reg_traces
+    if kwargs.get('calc_res_over_time'):
+        all_traces += antifrag_diff_qu_traces
+    if kwargs.get('include_max_dip_auc'):
+        all_traces += max_dip_auc_bars
 
     # Update the figure with new data and layout
     fig = go.Figure(data=all_traces, layout=fig.layout)
@@ -433,16 +523,39 @@ def create_plot_from_data(json_str, **kwargs):
         yanchor='top'
     ))
 
-    # Hide all traces initially and only show the first trace in each legend group
+    # Construct the legend
     legend_groups_seen = set()
     for trace in fig.data:
         legend_group = trace.legendgroup
         if legend_group:
+            trace.update(showlegend=False)
             if legend_group not in legend_groups_seen:
-                trace.update(showlegend=True)
+                # Extract color based on trace type
+                if hasattr(trace, 'line') and hasattr(trace.line, 'color'):
+                    color = trace.line.color
+                elif hasattr(trace, 'marker') and hasattr(trace.marker, 'color'):
+                    color = trace.marker.color
+                elif hasattr(trace, 'fillcolor'):
+                    color = trace.fillcolor
+                else:
+                    color = None
+
+                # Create a dummy trace for the legend
+                dummy_trace = go.Scatter(
+                    x=[None],  # Dummy data
+                    y=[None],  # Dummy data
+                    mode='markers',
+                    marker=dict(size=0),  # Make it invisible
+                    showlegend=True,
+                    name=legend_group,  # Use the legend group name
+                    legendgroup=legend_group,
+                    line=dict(color=color) if color else None  # Preserve line color if applicable
+                )
+                # Add the dummy trace to the figure
+                fig.add_trace(dummy_trace)
+
+                # Add the legend group to the seen set
                 legend_groups_seen.add(legend_group)
-            else:
-                trace.update(showlegend=False)
         else:
             trace.update(showlegend=True)
 
