@@ -1,4 +1,3 @@
-import time
 import plotly.graph_objects as go
 import plotly.io as pio
 import numpy as np
@@ -63,14 +62,23 @@ def create_plot_from_data(json_str, **kwargs):
           (Max. N. of segments for lin. reg.).
         - weighted_auc_half_life (float): Half-life for weighted AUC calculation
           (default is 2).
-        - smoother_threshold (int): Threshold for smoother function
-          (default is 2).
+        - smoother_threshold (int): Threshold for smoother function in percent
+          (default is 2[%]).
+        - calc_res_over_time (bool): Calculate the differential quotient for every Core Resilience-Related Trace.
+        - dip_detection_algorithm (str or None): Specifies the dip detection algorithm to use.
+          It can be 'max_dips' (default), 'threshold_dips', 'manual_dips', or None.
+        - manual_dips (list of tuples or None): If 'manual_dips' is selected as the dip detection algorithm,
+          this should be a list of tuples specifying the manual dips.
 
     Returns
     -------
     fig : plotly.graph_objs._figure.Figure
         Plotly Figure object with the specified traces and analyses included.
     """
+    # Set default dip detection algorithm to 'max_dips'
+    dip_detection_algorithm = kwargs.get('dip_detection_algorithm', 'max_dips')
+    # TODO update readme
+
     # Convert JSON string to Plotly figure
     fig = pio.from_json(json_str)
 
@@ -89,7 +97,7 @@ def create_plot_from_data(json_str, **kwargs):
     derivative_traces = []
     lin_reg_traces = []
     antifrag_diff_qu_traces = []
-    max_dip_auc_bars =[]
+    max_dip_auc_bars = []
 
     # Retrieve optional arguments with defaults
     threshold = kwargs.get('threshold', 80)
@@ -261,9 +269,18 @@ def create_plot_from_data(json_str, **kwargs):
         ################################################
         # [T-Dip] Dip Detection
         # MaxDips Detection (Detects with the help of peaks)
-        max_dips = extract_max_dips_based_on_maxs(dips)
-        # TODO add threshold dip
-        # TODO based on user input / labels
+        if dip_detection_algorithm == 'max_dips':
+            max_dips = extract_max_dips_based_on_maxs(dips)
+        elif dip_detection_algorithm == 'threshold_dips':
+            # TODO add threshold dip
+            # Implement logic for threshold_dip
+            pass
+        elif dip_detection_algorithm == 'manual_dips':
+            max_dips = kwargs.get('manual_dips')
+            if not max_dips:
+                raise ValueError('No dips provided: manual_dips must hold values. See help or doc string')
+
+
 
         # For a dip, get the maximal draw down (1- Robustness) Information and Recovery Information
         # Both infos are used later for adding the bars
@@ -473,7 +490,7 @@ def create_plot_from_data(json_str, **kwargs):
             side='right',
             autoshift=True
         ),
-        yaxis5 = dict(
+        yaxis5=dict(
             title='Differential Quotient "Antifragility"',
             overlaying='y',
             anchor='free',

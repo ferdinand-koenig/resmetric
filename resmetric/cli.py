@@ -1,5 +1,6 @@
 import argparse
 import sys
+import ast
 
 from .plot import create_plot_from_data
 
@@ -52,12 +53,13 @@ def print_workflow():
                     │                        │     Detect Dips      │                                   
                     │                        ├──────────────────────┤                                   
                     │                        │ --max-dips           │                                   
-                    │                        │ --threshold-dip      │                                   
+                    │                        │ --threshold-dip      │
+                    │                        │ --manual-dips        │                                   
                     │                        │ --lg [experimental]  │                                    
                     │                        │                      │                                   
-                    │                        │ Not yet implemented: │      
-                    │                        │ --manual-labels      │                                   
-                    │                        └────────────┬─────────┘                                   
+                    │                        │ Not yet implemented: │                   
+                    │                        │ --std [x sigma band] │                                   
+                    │                        └────────────┬─────────┘                                  
                     ▼                                     ▼                                             
     ┌──────────────────────────────────┐ ┌───────────────────────────────────────────┐                  
     │    Calculate Resilience          │ │   Calculate Resilience  (per Dip)         │                  
@@ -67,29 +69,63 @@ def print_workflow():
     │          weighted by kernel      │ │                    and Recovery Time      │                  
     │ --count  How many times dropped  │ └─────────────────┬─────────────────────────┘                  
     │          below threshold         │                   ▼                                            
-    │ --time   How much time spent     │ ┌─────────────────────────────────────────────────────────────┐
-    │          below threshold         │ │         Calculate "Antifragility"                           │
-    │ --deriv  Show the 1st and 2nd    │ │         Resilience over Time                                │
-    │          derivatives             │ ├─────────────────────────────────────────────────────────────┤
-    │                                  │ │ --calc-res-over_time    Calculate the differential quotient │
-    │ Advanced                         │ │                         for every resilience metric         │
-    │ --dips                           │ │                         of this track                       │
-    │ --drawdowns_traces               │ └──────────────────────────┬──────────────────────────────────┘
+    │ --time   How much time spent     │ ┌───────────────────────────────────────────────────────┐
+    │          below threshold         │ │         Calculate "Antifragility" /                   │
+    │ --deriv  Show the 1st and 2nd    │ │         Resilience over Time                          │
+    │          derivatives             │ ├───────────────────────────────────────────────────────┤
+    │                                  │ │ --calc-res-over-time    Calculate the differential    │
+    │ Advanced                         │ │                         quotient for every resilience │
+    │ --dips                           │ │                         metric of this track          │
+    │ --drawdowns_traces               │ └──────────────────────────┬────────────────────────────┘
     │ --drawdowns_shapes               │                            │                                   
     └──────────────┬───────────────────┘                            │                                   
                    └────────────────────┬───────────────────────────┘                                   
                                         ▼                                                               
-                                   Display or Save                                                      
+                                Display or Save                                                      
     """
-    print(workflow);
+
+    print("\nPreprocessing influences all subsequent steps. There are two tracks that can be executed independently: "
+          "The Dip-Agnostic Track [T-Ag] and the Dip-Dependent Track [T-Dip]. In [T-Ag], resilience metrics do "
+          "not depend on dips. In [T-Dip], all metrics are calculated w.r.t. a dip. Therefore, detecting dips "
+          "is mandatory. Then metrics can be calculated, as well as how they change over time ('antifragility').")
+    print(workflow)
+
+
+def parse_manual_dips(dip_string):
+    """Parse the manual dips input string into a list of tuples of integers, ensuring validity."""
+    try:
+        # Convert string to a list of tuples safely using `ast.literal_eval`
+        dips = ast.literal_eval(dip_string)
+
+        # Validate that it is a list of tuples of two non-negative integers
+        if not isinstance(dips, list) or not all(isinstance(t, tuple) and len(t) == 2 for t in dips):
+            raise ValueError
+
+        # Check that all integers are non-negative
+        if not all(isinstance(i, int) and i >= 0 for t in dips for i in t):
+            raise ValueError("All integers in the tuples must be non-negative.")
+
+        # Check that the tuples are in the correct order
+        for i in range(len(dips) - 1):
+            t0, t1 = dips[i]
+            t2, t3 = dips[i + 1]
+            if not (t0 > t1 >= t2 > t3):
+                raise ValueError(f"Invalid order in tuples: {dips[i]} and {dips[i + 1]}.")
+
+        return dips
+
+    except (ValueError, SyntaxError) as e:
+        raise argparse.ArgumentTypeError(
+            f"Invalid format for --manual-dips: {str(e)}. Expected a list of tuples, e.g., [(1, 2), (3, 4)].")
+
 
 def main():
     parser = argparse.ArgumentParser(
         description='Generate and display or save a Plotly figure from JSON data with optional traces and analyses.')
-    # TODO Tracks description / Figure
 
     # Required argument
-    parser.add_argument('json_file', nargs='?', type=str, help='Path to the JSON file containing the data.')
+    parser.add_argument('json_file', nargs='?', type=str,
+                        help='Path to the JSON file containing the data.')
     parser.add_argument('--workflow', action='store_true',
                         help='[Entry point for Beginners] Help-Command - Display the workflow diagram')
 
@@ -109,11 +145,19 @@ def main():
     agnostic_group.add_argument('--threshold', type=float, default=80,
                                 help='Threshold for count and time traces in percent (default: 80).')
 
+    # Create the [T-Dip] Dip Detection Algorithms argument group
     dip_detect_group = parser.add_argument_group('[T-Dip] Dip Detection Algorithms')
-    dip_detect_group.add_argument('--max_dips', action='store_true',
-                                  help='Detect maximal dips based on local maxima')
-    dip_detect_group.add_argument('--threshold-dip', action='store_true',
-                                  help='detect dips based on threshold')
+
+    # Create the mutually exclusive group within the dip_detect_group
+    mutually_exclusive_group = dip_detect_group.add_mutually_exclusive_group()
+
+    mutually_exclusive_group.add_argument('--max_dips', action='store_true', default=True,
+                                          help='Detect maximal dips based on local maxima')
+    mutually_exclusive_group.add_argument('--threshold-dips', action='store_true',
+                                          help='Detect dips based on threshold')
+    mutually_exclusive_group.add_argument('--manual-dips', type=parse_manual_dips,
+                                          help='Manually specify dips as a list of tuples of integers, '
+                                               'e.g., [(1, 2), (3, 4)].')
 
     # Group for basic trace options
     basic_group = parser.add_argument_group('[T-Dip] Core Resilience-Related Trace Options')
@@ -174,10 +218,11 @@ def main():
 
     # Ensure that json_file is provided if `--workflow` is not used
     if args.json_file is None:
-        parser.print_help()
-        print("\nError: The positional argument 'json_file' is required unless using the --workflow flag.")
+        print("\nError: The positional argument 'json_file' is required unless using the --workflow flag.\n"
+              "See help page '-h'")
         sys.exit(1)
 
+    dip_detect_algorithm = 'manual_dips' if args.manual_dips else 'threshold_dip' if args.threshold_dip else 'max_dips'
     # Convert args to a dictionary of keyword arguments
     kwargs = {
         'include_auc': args.auc,
@@ -197,7 +242,9 @@ def main():
         'dimensions': args.dimensions,
         'weighted_auc_half_life': args.weighted_auc_half_life,
         'smoother_threshold': args.smoother_threshold,
-        'calc_res_over_time': args.calc_res_over_time #TODO update README.md
+        'calc_res_over_time': args.calc_res_over_time,
+        'dip_detection_algorithm': dip_detect_algorithm,
+        'manual_dips': args.manual_dips
     }
 
     plot_from_json_file(args.json_file, silent=args.silent, save_path=args.save, **kwargs)
