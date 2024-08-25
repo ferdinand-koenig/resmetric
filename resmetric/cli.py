@@ -39,7 +39,9 @@ def main():
                                           '(Hee-Hee! Ow!).')
 
     agnostic_group = parser.add_argument_group('[T-Ag] Core Resilience-Related Trace Options')
-    agnostic_group.add_argument('--auc', action='store_true', help='Include AUC-related traces.')
+    agnostic_group.add_argument('--auc', action='store_true',
+                                help='Include AUC-related traces. '
+                                     '(AUC devided by the length of time frame and different kernels applied)')
     agnostic_group.add_argument('--count', action='store_true',
                                 help='Include traces that count dips below the threshold.')
     agnostic_group.add_argument('--time', action='store_true',
@@ -58,7 +60,8 @@ def main():
     # basic_group.add_argument('--all-core', action='store_true',
     #                          help='Select all core resilience-related trace options.')
     basic_group.add_argument('--max-dip-auc', action='store_true',
-                             help='Include AUC bars for the AUC of one maximal dip')
+                             help='Include AUC bars for the AUC of one maximal dip (AUC devided by the length of the '
+                                  'time frame)')
     basic_group.add_argument('--bars', action='store_true', help='Include bars for MDD and recovery.')
 
     anti_fragility_group = parser.add_argument_group('[T-Dip] Resilience-Related Metrics over Time Options ('
