@@ -28,6 +28,7 @@ def plot_from_json_file(json_file, silent=False, save_path=None, **kwargs):
 def main():
     parser = argparse.ArgumentParser(
         description='Generate and display or save a Plotly figure from JSON data with optional traces and analyses.')
+    # TODO Tracks description / Figure
 
     # Required argument
     parser.add_argument('json_file', type=str, help='Path to the JSON file containing the data.')
@@ -48,7 +49,7 @@ def main():
 
     dip_detect_group = parser.add_argument_group('[T-Dip] Dip Detection Algorithms')
     dip_detect_group.add_argument('--max_dips', action='store_true',
-                                  help='Include maximal dips, maximal draw-downs, and recoveries')
+                                  help='Detect maximal dips based on local maxima')
     dip_detect_group.add_argument('--threshold-dip', action='store_true',
                                   help='detect dips based on threshold')
 
@@ -58,8 +59,6 @@ def main():
     basic_group.add_argument('--all-core', action='store_true',
                              help='Select all core resilience-related trace options.')
     # TODO add AUC for T-Dip
-
-    # TODO split max dips
     basic_group.add_argument('--bars', action='store_true', help='Include bars for MDD and recovery.')
 
     anti_fragility_group = parser.add_argument_group('[T-Dip] Resilience-Related Metrics over Time Options ('
