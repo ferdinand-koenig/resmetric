@@ -555,3 +555,36 @@ def _perform_bayesian_optimization(x_values, y_values, dimensions=10, penalty_fa
         n_jobs=-1
     )
     return int(result.x[0])
+
+
+def resilience_over_time(y_values, dips):
+    # Pairs of (t0, t1) where t0 demarcates the start of a dip and t1 the end
+    # dips = [(0,14), (20, 28), (50, 60), (65, 70)]
+
+    # calculate some res_metrics (at end of dip because there we know all the metrics
+    # res_metrics = [(14, 0.8), (28, 0.9), (50, 0.7), (70, 0.75)]
+    res_metrics = []
+
+    for dip in dips:
+
+
+    # calculate differential quotients
+    # Initialize an empty list to store the results
+    diff_quotients = []
+    # Loop through the list, except for the last element
+    for i in range(len(res_metrics) - 1):
+        x1, y1 = res_metrics[i]
+        x2, y2 = res_metrics[i + 1]
+
+        # Calculate the differential quotient
+        d = (y2 - y1) / (x2 - x1)
+
+        # Append the result to the list
+        diff_quotients.append((x2, d))
+
+    mean_antifragility = np.mean([d for _, d in diff_quotients])
+    return diff_quotients, mean_antifragility
+
+    # Display a single metric,
+    # display the differential quotients ( as lines e.g., dot-dashed)
+    # Display The overall one
