@@ -16,7 +16,8 @@ from .metrics import (
     _find_next_smaller,
     smoother,
     _perform_bayesian_optimization,
-    _make_color_pale_hex
+    _make_color_pale_hex,
+    resilience_over_time
 )
 
 
@@ -34,6 +35,7 @@ def create_plot_from_data(json_str, **kwargs):
         analyses:
 
         - include_auc (bool): Include AUC-related traces.
+        - include_max_dip_auc (bool): Include AUC bars for the AUC of one maximal dip
         - include_count_below_thresh (bool): Include traces counting dips below
           the threshold.
         - include_time_below_thresh (bool): Include traces accumulating time
@@ -49,7 +51,7 @@ def create_plot_from_data(json_str, **kwargs):
         - include_draw_downs_shapes (bool): Include shapes of local draw-downs.
         - include_maximal_dips (bool): Include maximal dips, maximal draw-downs,
           and recoveries.
-        - include_bars (bool): Include bars for MDD and recovery.
+        - include_bars (bool): Include bars for robustness, recovery and recovery time.
         - include_derivatives (bool): Include derivatives traces.
         - include_lin_reg (bool): Include linear regression traces.
         - penalty_factor (float): Penalty factor for Bayesian Optimization
@@ -83,6 +85,7 @@ def create_plot_from_data(json_str, **kwargs):
     dips_horizontal_shapes = []
     derivative_traces = []
     lin_reg_traces = []
+    antifrag_diff_qu_traces = []
 
     # Retrieve optional arguments with defaults
     threshold = kwargs.get('threshold', 80)
@@ -256,6 +259,7 @@ def create_plot_from_data(json_str, **kwargs):
         # MaxDips Detection (Detects with the help of peaks)
         max_dips = extract_max_dips_based_on_maxs(dips)
         # TODO add threshold dip
+        # TODO based on user input / labels
 
         # For a dip, get the maximal draw down (1- Robustness) Information and Recovery Information
         # Both infos are used later for adding the bars
@@ -356,6 +360,54 @@ def create_plot_from_data(json_str, **kwargs):
                     )
                 )
 
+        ##############################
+        # [T-Dip] "antiFragility"
+        # mdd_info = extract_mdd_from_dip(max_dips, y_values) # Robustness
+        #  recovery_info = get_recovery(y_values, max_dips)
+        # AUC
+        # length
+        if (kwargs.get('calc_res_over_time') and
+                (kwargs.get('include_bars') or kwargs.get('include_dip_auc'))):
+            # TODO add calc_res_over_time and include_dip_auc
+            # Construct input
+            dips_resilience = {d: {} for d in max_dips}
+            if kwargs.get('include_bars'):
+                assert set(dips_resilience.keys()) != set(mdd_info.keys()), "Keys do no match"
+                for dip, mdd in mdd_info:
+                    dips_resilience[dip]['robustness'] = 1 - mdd['value']  # TODO add robustness as bars
+                    dips_resilience[dip]['recovery'] = recovery_info[dip[1]]['relative_recovery']
+                    dips_resilience[dip]['recovery time'] = dip[1] - dip[0]  # TODO add recovery time as bars
+            if kwargs.get('include_dip_auc'):
+                pass  #TODO implement dip AUC
+
+            # take output and draw the traces
+            for metric, metric_change in resilience_over_time(dips_resilience).items():
+                antifrag_diff_qu_traces.append(
+                    go.Scatter(
+                        x=[end for end, _ in metric_change.get('diff_q')],
+                        y=[quotient for _, quotient in metric_change.get('diff_q')],
+                        mode='lines+markers',
+                        line=dict(color=fig.layout.template.layout.colorway[i],
+                                  dash='dot'),
+                        marker=dict(
+                            symbol='cross',
+                            size=8,
+                            color='black'
+                        ),
+                        name=f'Diff. quot. of {metric} - {s.name}',
+                        legendgroup=f'Antifragility - {s.name}'
+                    )
+                )
+                antifrag_diff_qu_traces.append(
+                    go.Scatter(
+                        x=[global_x_min, global_x_max],  # Extend the line across the global x-axis range
+                        y=[metric_change.get('overall'), metric_change.get('overall')],
+                        mode='lines',
+                        name=f'Mean Diff. quot. of {metric} - {s.name}',
+                        legendgroup=f'Antifragility - {s.name}',
+                        line=dict(dash='dash', color='black')
+                    )
+                )
 
         # Update the original series with a pale color
         s.update(
@@ -423,6 +475,8 @@ def create_plot_from_data(json_str, **kwargs):
         all_traces += derivative_traces
     if kwargs.get('include_lin_reg'):
         all_traces += lin_reg_traces
+    if kwargs.get('calc_res_over_time'):
+        all_traces += antifrag_diff_qu_traces
 
     # Update the figure with new data and layout
     fig = go.Figure(data=all_traces, layout=fig.layout)
