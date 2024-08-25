@@ -77,7 +77,7 @@ def create_plot_from_data(json_str, **kwargs):
     """
     # Set default dip detection algorithm to 'max_dips'
     dip_detection_algorithm = kwargs.get('dip_detection_algorithm', 'max_dips')
-    # TODO update readme
+    # TODO update readme + add the new anti-fragility func
 
     # Convert JSON string to Plotly figure
     fig = pio.from_json(json_str)
