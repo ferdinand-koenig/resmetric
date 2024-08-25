@@ -308,7 +308,7 @@ def _get_dips(values, maxs=None):
     return dips  # Return the list of detected dips
 
 
-def extract_max_dips(entries):
+def extract_max_dips_based_on_maxs(entries):
     """
     Extract maximal dips from a list of timestamp tuples (t0, t1).
 
@@ -358,7 +358,7 @@ def extract_max_dips(entries):
         Since I myself forgot how this piece of art works, I recorded the calls and returned values of
         _filter_max_timestamp with a toy example.
         Example:
-        >>> extract_max_dips([(0,2),(0,4),(2,4),(4,6),(4,7),(6,8),(7,9)])
+        >>> extract_max_dips_based_on_maxs([(0,2),(0,4),(2,4),(4,6),(4,7),(6,8),(7,9)])
         Call _filter_max_timestamp with entries [(0, 2), (0, 4), (2, 4), (4, 6), (4, 7), (6, 8), (7, 9)] and target 0
         returned (0, 4) and [(2, 4), (4, 6), (4, 7), (6, 8), (7, 9)]
         
