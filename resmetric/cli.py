@@ -1,4 +1,6 @@
 import argparse
+import sys
+
 from .plot import create_plot_from_data
 
 
@@ -25,13 +27,71 @@ def plot_from_json_file(json_file, silent=False, save_path=None, **kwargs):
         fig.show()
 
 
+def print_workflow():
+    workflow = u"""
+                                 Data                                                                   
+                                   │                                                                    
+                                   ▼                                                                    
+            ┌─────────────────────────────────────────────────────────┐                                  
+            │          Preprocessing                                  │                                  
+            │─────────────────────────────────────────────────────────│                                  
+            │ --smooth_criminal   Threshold-based value update filter │                                  
+            │─────────────────────────────────────────────────────────│                                  
+            │ Not yet implemented:                                    │                                  
+            │ - Exponential Moving Average [EMA]                      │                                  
+            │ - Low-Pass Filters                                      │                                  
+            │ - Fourier Transformation                                │                                  
+            │                                                         │                                  
+            └─────────────────────────────────────────────────────────┘                                  
+                                   │                                                                    
+                    ┌──────────────┴──────────────────────┐                                             
+                    ▼                                     ▼                                             
+        Dip-Agnostic Track [T-Ag]            Dip-Dependent Track [T-Dip]                                
+                    │                                     ▼                                             
+                    │                        ┌──────────────────────┐                                   
+                    │                        │     Detect Dips      │                                   
+                    │                        ├──────────────────────┤                                   
+                    │                        │ --max-dips           │                                   
+                    │                        │ --threshold-dip      │                                   
+                    │                        │ --lg [experimental]  │                                    
+                    │                        │                      │                                   
+                    │                        │ Not yet implemented: │      
+                    │                        │ --manual-labels      │                                   
+                    │                        └────────────┬─────────┘                                   
+                    ▼                                     ▼                                             
+    ┌──────────────────────────────────┐ ┌───────────────────────────────────────────┐                  
+    │    Calculate Resilience          │ │   Calculate Resilience  (per Dip)         │                  
+    ├──────────────────────────────────┤ ├───────────────────────────────────────────┤                  
+    │ --auc    AUC devided by length   │ │   --max-dip-auc    AUC per dip            │                  
+    │          of time frame and       │ │   --bars           Robustness, Recovery,  │                  
+    │          weighted by kernel      │ │                    and Recovery Time      │                  
+    │ --count  How many times dropped  │ └─────────────────┬─────────────────────────┘                  
+    │          below threshold         │                   ▼                                            
+    │ --time   How much time spent     │ ┌─────────────────────────────────────────────────────────────┐
+    │          below threshold         │ │         Calculate "Antifragility"                           │
+    │ --deriv  Show the 1st and 2nd    │ │         Resilience over Time                                │
+    │          derivatives             │ ├─────────────────────────────────────────────────────────────┤
+    │                                  │ │ --calc-res-over_time    Calculate the differential quotient │
+    │ Advanced                         │ │                         for every resilience metric         │
+    │ --dips                           │ │                         of this track                       │
+    │ --drawdowns_traces               │ └──────────────────────────┬──────────────────────────────────┘
+    │ --drawdowns_shapes               │                            │                                   
+    └──────────────┬───────────────────┘                            │                                   
+                   └────────────────────┬───────────────────────────┘                                   
+                                        ▼                                                               
+                                   Display or Save                                                      
+    """
+    print(workflow);
+
 def main():
     parser = argparse.ArgumentParser(
         description='Generate and display or save a Plotly figure from JSON data with optional traces and analyses.')
     # TODO Tracks description / Figure
 
     # Required argument
-    parser.add_argument('json_file', type=str, help='Path to the JSON file containing the data.')
+    parser.add_argument('json_file', nargs='?', type=str, help='Path to the JSON file containing the data.')
+    parser.add_argument('--workflow', action='store_true',
+                        help='[Entry point for Beginners] Help-Command - Display the workflow diagram')
 
     preprocessing_group = parser.add_argument_group('Preprocessing Options')
     preprocessing_group.add_argument('--smooth_criminal', action='store_true',
@@ -106,6 +166,17 @@ def main():
                                help='Do not display the figure')
 
     args = parser.parse_args()
+
+    # Handle the `--workflow` flag
+    if args.workflow:
+        print_workflow()
+        return
+
+    # Ensure that json_file is provided if `--workflow` is not used
+    if args.json_file is None:
+        parser.print_help()
+        print("\nError: The positional argument 'json_file' is required unless using the --workflow flag.")
+        sys.exit(1)
 
     # Convert args to a dictionary of keyword arguments
     kwargs = {

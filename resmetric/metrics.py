@@ -425,7 +425,7 @@ def extract_mdd_from_dip(max_dips, values):
     # Iterate over each maximum dip (represented as a tuple of start and end indices)
     for start, end in max_dips:
         # Extract the y-values within the dip range
-        dip_values = np.array(values[start:end+1])
+        dip_values = np.array(values[start:end + 1])
 
         # Detect local minima within the dip by inverting the values
         minima_indices = detect_peaks(-dip_values)
@@ -645,3 +645,41 @@ def resilience_over_time(dips_resilience):
 
     return results
 
+
+def get_max_dip_auc(y_values, max_dips):
+    """
+    Calculate the Area Under Curve (AUC) for each dip defined in `max_dips`.
+
+    This function computes the AUC for segments of the `y_values` array corresponding to each dip range specified in `max_dips`.
+    It uses the `calculate_kernel_auc` function to obtain the AUC value for each segment.
+
+    Parameters:
+    - y_values (list or array-like): A list or array of numerical values representing the data points.
+    - max_dips (list of tuples): A list of tuples, where each tuple contains two elements (start_index, end_index)
+      defining the range of the dip. Each range specifies the segment of `y_values` to calculate the AUC for.
+
+    Returns:
+    - dict: A dictionary where each key is a tuple representing a dip (start, end), and the value is the AUC
+      of that segment. The AUC is calculated using the `calculate_kernel_auc` function applied to the segment.
+
+    Example:
+    >>> y_values = [10, 20, 30, 25, 30, 28, 20, 18, 22, 25, 30, 35, 40, 38, 36, 30, 25, 22, 20, 18]
+    >>> max_dips = [(5, 10), (15, 20)]
+    >>> result = get_max_dip_auc(y_values, max_dips)
+    >>> print(result)
+    {
+        (5, 10): 10.5,  # Example AUC values (not accurate)
+        (15, 20): 9.2
+    }
+    """
+    # Dictionary to store the AUC for each dip
+    max_dip_auc_info = {}
+
+    # Iterate over each dip defined by its start and end indices
+    for dip in max_dips:
+        # Extract the segment of y_values corresponding to the current dip
+        segment = y_values[dip[0]:dip[1] + 1]
+        # Calculate the AUC for the segment and store it in the dictionary
+        max_dip_auc_info[dip] = calculate_kernel_auc(segment)[-1]
+
+    return max_dip_auc_info
