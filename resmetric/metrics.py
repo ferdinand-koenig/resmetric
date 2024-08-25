@@ -222,7 +222,7 @@ def detect_peaks(y_values):
         raise ValueError("y_values must be at least two values")
 
     # Add padding with -1 at the beginning and end of y_values
-    padded_y_values = np.concatenate(([-1], y_values, [-1]))
+    padded_y_values = np.concatenate(([-2], y_values, [-2]))
 
     peaks, _ = find_peaks(padded_y_values)  #, prominence=prominence, width=width)
 
@@ -410,7 +410,7 @@ def extract_mdd_from_dip(max_dips, mins, values):
     >>> max_dips = [(5, 10), (15, 20)]
     >>> mins = [7, 17]
     >>> values = [10, 20, 30, 25, 30, 28, 20, 18, 22, 25, 30, 35, 40, 38, 36, 30, 25, 22, 20, 18]
-    >>> result = _extract_mdd_from_dip(max_dips, mins, values)
+    >>> result = extract_mdd_from_dip(max_dips, mins, values)
     >>> print(result)
     {
         (5, 10): {
@@ -423,6 +423,9 @@ def extract_mdd_from_dip(max_dips, mins, values):
         }
     }
     """
+    # TODO In future, a dip is not necessarily defined based on the maxima, therefore find the mins w.r.t. the dips
+    mins = detect_peaks(-np.array(values))
+
     # Convert the indices of minimum points to their corresponding values
     mins_values = np.array(values)[mins]
 
