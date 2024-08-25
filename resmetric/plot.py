@@ -254,7 +254,6 @@ def create_plot_from_data(json_str, **kwargs):
         ################################################
         # [T-Dip] Dip Detection
         # MaxDips Detection (Detects with the help of peaks)
-        # TODO name this different
         max_dips = extract_max_dips_based_on_maxs(dips)
         # TODO add threshold dip
 

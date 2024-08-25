@@ -35,7 +35,7 @@ def main():
 
     preprocessing_group = parser.add_argument_group('Preprocessing Options')
     preprocessing_group.add_argument('--smooth_criminal', action='store_true',
-                                     help='Smooth the series with a threshold-based value update filter'
+                                     help='Smooth the series with a threshold-based value update filter '
                                           '(Hee-Hee! Ow!).')
 
     agnostic_group = parser.add_argument_group('[T-Ag] Core Resilience-Related Trace Options')
