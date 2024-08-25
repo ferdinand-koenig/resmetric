@@ -7,103 +7,81 @@ from skopt import gp_minimize
 from skopt.space import Integer
 
 
-def calculate_auc(y_values):
+def calculate_kernel_auc(y_values, kernel='uniform', lambda_weight=None, half_life=None, custom_kernel=None):
     """
-    Calculate the Area Under the Curve (AUC) using a cumulative average approach.
-
-    This function computes the AUC by calculating the cumulative average of the
-    input values at each point. The AUC is a measure of the aggregate value of
-    the data points, providing a way to evaluate the overall level of the input
-    series.
+    Calculate the Area Under the Curve (AUC) using a kernel-weighted approach.
+    Supports uniform, inverse, and exponential decay kernels, or a custom kernel function.
 
     Parameters:
-    - y_values (array-like): Input data array. Should be a list or array of numerical values.
+    - y_values (list): Input list of y-values representing the data series.
+    - kernel (str): The kernel to use for weighting ('uniform', 'inverse', 'exp', 'custom').
+    - lambda_weight (float): The lambda parameter for the exponential decay kernel.
+    - half_life (float): The half-life for the exponential decay kernel. If provided, it overrides `lambda_weight`.
+    - custom_kernel (function): A custom kernel function (anonymous lambda) that takes a single argument `d`.
 
     Returns:
-    - list: A list of AUC values at each point in the input data. The length of this
-            list will be the same as the input `y_values`, where each entry corresponds
-            to the AUC calculated up to that point.
+    - auc_values (list): List of AUC values calculated at each point in the series.
 
-    Example:
-    >>> y_values = [1, 2, 3, 4]
-    >>> calculate_auc(y_values)
-    [1.0, 1.5, 2.0, 2.5]
-
-    Notes:
-    - The function computes the AUC incrementally, adding the current value to a cumulative
-      sum and then dividing by the current index plus one. This provides a running average
-      of the AUC values.
+    Raises:
+    - ValueError: If an unsupported kernel is selected or if required parameters are missing.
     """
-    auc_values = []
-    cumulative_sum = 0
-    for i, y in enumerate(y_values):
-        cumulative_sum += y
-        auc = cumulative_sum / (i + 1)
-        auc_values.append(auc)
-    return auc_values
 
+    def _half_life_to_lambda(half_life):
+        """Convert half-life to decay parameter lambda."""
+        return math.log(2) / half_life
 
-def calculate_inverse_weighted_auc(y_values):
-    """
-    Calculate the AUC with inverse weighting.
+    # Define kernel functions for different kernel types
+    def uniform_kernel(d):
+        # Uniform kernel: Equal weight for all data points
+        return 1
 
-    Parameters:
-    - y_values: List of y-values for which the AUC is calculated.
+    def inverse_kernel(d):
+        # Inverse kernel: Weight decreases as the distance increases
+        return 1 / (d + 1)
 
-    Returns:
-    - auc_values: List of inverse weighted AUC values.
-    """
-    auc_values = []
-    cumulative_sum = 0
-    weights_sum = 0
+    def exp_kernel(d, lambda_weight):
+        # Exponential decay kernel: Weight decreases exponentially with distance
+        return np.exp(-lambda_weight * d)
 
-    for i, y in enumerate(y_values):
-        # Calculate weight based on inverse function
-        index = len(y_values) - i
-        weight = 1 / (index + 1)  # Note: i + 1 to avoid division by zero
+    if half_life is not None:
+        lambda_weight = _half_life_to_lambda(half_life)
 
-        # Update cumulative sum with weighted value
-        cumulative_sum += y * weight
+    # Select the appropriate kernel function based on user input
+    if kernel == 'uniform':
+        kernel_func = uniform_kernel
+    elif kernel == 'inverse':
+        kernel_func = inverse_kernel
+    elif kernel == 'exp':
+        if lambda_weight is None:
+            # Raise error if exponential kernel is selected but no lambda is provided
+            raise ValueError("lambda_weight or half_life must be provided for exponential kernel.")
+        kernel_func = lambda d: exp_kernel(d, lambda_weight)
+    elif kernel == 'custom':
+        if custom_kernel is None:
+            # Raise error if custom kernel is selected but no function is provided
+            raise ValueError("A custom kernel function must be provided when using the 'custom' kernel option.")
+        kernel_func = custom_kernel
+    else:
+        # Raise error if an unsupported kernel is selected
+        raise ValueError(
+            f"Unsupported kernel '{kernel}'. Supported kernels are 'uniform', 'inverse', 'exp', or 'custom'.")
 
-        # Update the sum of weights
-        weights_sum += weight
+    auc_values = []  # List to store the calculated AUC values for time series
 
-        # Calculate the weighted AUC up to the current point
-        auc = cumulative_sum / weights_sum
-        auc_values.append(auc)
+    # Loop through each point in the data series
+    for i in range(1, len(y_values)):
+        weighted_sum = 0  # Initialize weighted sum for the current AUC calculation
+        kernel_sum = 0  # Initialize sum of kernel weights
 
-    return auc_values
+        # Calculate the AUC using trapezoidal rule with kernel weighting
+        for j in range(1, i + 1):
+            weight = kernel_func(i - j)  # Calculate the weight using the selected kernel
+            trapezoid_area = ((y_values[j - 1] + y_values[j]) / 2) * weight  # Calculate trapezoid area
+            weighted_sum += trapezoid_area  # Add to weighted sum
+            kernel_sum += weight  # Add to kernel weight sum
 
-
-def calculate_weighted_auc(y_values, lambda_weight):
-    """
-    Calculate the weighted AUC with exponential decay weighting.
-
-    Parameters:
-    - y_values: List of y-values for which the AUC is calculated.
-    - lambda_weight: Weighting factor for the exponential decay function.
-
-    Returns:
-    - auc_values: List of weighted AUC values.
-    """
-    auc_values = []
-    cumulative_sum = 0
-    weights_sum = 0
-
-    for i, y in enumerate(y_values):
-        # Calculate weight based on exponential decay
-        index = len(y_values) - i
-        weight = np.exp(-lambda_weight * index)
-
-        # Update cumulative sum with weighted value
-        cumulative_sum += y * weight
-
-        # Update the sum of weights
-        weights_sum += weight
-
-        # Calculate the weighted AUC up to the current point
-        auc = cumulative_sum / weights_sum
-        auc_values.append(auc)
+        # Store the normalized AUC value in the list
+        auc_values.append(weighted_sum / kernel_sum)
 
     return auc_values
 
@@ -135,19 +113,6 @@ def _make_color_pale_hex(hex_color, factor=0.5):
 
     # Convert back to hex and return
     return "#{:02X}{:02X}{:02X}".format(r_pale, g_pale, b_pale)
-
-
-def _half_life_to_lambda(half_life):
-    """
-    Convert half-life to decay parameter lambda.
-
-    Parameters:
-    half_life (float): The half-life in units.
-
-    Returns:
-    float: The decay parameter lambda.
-    """
-    return math.log(2) / half_life
 
 
 def time_below_threshold(y_values, threshold):
@@ -245,27 +210,21 @@ def calculate_max_drawdown(time_series):
 
 def detect_peaks(y_values):
     """
-        Detect peaks in a time series and return peak properties.
+        Detect and return peaks in a time series.
 
         Parameters:
-        - y_values: List of y-values for peak detection.
-        - prominence: Minimum prominence of peaks.
-        - width: Minimum width of peaks.
+        - y_values: List-like object of y-values for peak detection.
 
         Returns:
         - peaks: Indices of detected peaks.
-        - properties: Properties of detected peaks including prominence and width.
     """
-    if not len(y_values) > 1:
-        raise ValueError("y_values must be at least two values")
+    # Add padding with -1 at the beginning and end of y_values
+    padded_y_values = np.concatenate(([-2], y_values, [-2]))
 
-    peaks, _ = find_peaks(y_values)  #, prominence=prominence, width=width)
-    if y_values[0] > y_values[1]:
-        # Add 0 to the beginning of the peaks list if condition is met
-        peaks = np.insert(peaks, 0, 0)
-    if y_values[-1] > y_values[-2]:
-        # Add the index of the last value to the peaks list if condition is met
-        peaks = np.append(peaks, len(y_values) - 1)
+    peaks, _ = find_peaks(padded_y_values)  #, prominence=prominence, width=width)
+
+    # Adjust indices to correspond to the original y_values
+    peaks -= 1  # Subtract 1 to correct for the padding
 
     return peaks
 
@@ -349,7 +308,7 @@ def _get_dips(values, maxs=None):
     return dips  # Return the list of detected dips
 
 
-def extract_max_dips(entries):
+def extract_max_dips_based_on_maxs(entries):
     """
     Extract maximal dips from a list of timestamp tuples (t0, t1).
 
@@ -360,6 +319,9 @@ def extract_max_dips(entries):
         list: A list of maximal dip entries, each represented as a tuple (t0, t1).
     """
     entries = list(entries)  # call by copy
+    # If there are no dips, there cannot be maximal dips
+    if not entries:
+        return []
 
     def _filter_max_timestamp(entries, target_t):
         """
@@ -396,7 +358,7 @@ def extract_max_dips(entries):
         Since I myself forgot how this piece of art works, I recorded the calls and returned values of
         _filter_max_timestamp with a toy example.
         Example:
-        >>> extract_max_dips([(0,2),(0,4),(2,4),(4,6),(4,7),(6,8),(7,9)])
+        >>> extract_max_dips_based_on_maxs([(0,2),(0,4),(2,4),(4,6),(4,7),(6,8),(7,9)])
         Call _filter_max_timestamp with entries [(0, 2), (0, 4), (2, 4), (4, 6), (4, 7), (6, 8), (7, 9)] and target 0
         returned (0, 4) and [(2, 4), (4, 6), (4, 7), (6, 8), (7, 9)]
         
@@ -417,7 +379,7 @@ def extract_max_dips(entries):
     return max_dips
 
 
-def extract_mdd_from_dip(max_dips, mins, values):
+def extract_mdd_from_dip(max_dips, values):
     """
     Extracts Maximum Drawdown (MDD) information for each dip from a list of maximum dips.
 
@@ -429,7 +391,6 @@ def extract_mdd_from_dip(max_dips, mins, values):
     Parameters:
     - max_dips (list of tuples): A list where each tuple represents a dip. Each tuple contains two elements:
       the start and end indices of the dip (e.g., (start_index, end_index)).
-    - mins (list of int): A list of indices where the minima occur.
     - values (list or array): A list or array of values corresponding to the data points.
 
     Returns:
@@ -443,9 +404,8 @@ def extract_mdd_from_dip(max_dips, mins, values):
 
     Example:
     >>> max_dips = [(5, 10), (15, 20)]
-    >>> mins = [7, 17]
     >>> values = [10, 20, 30, 25, 30, 28, 20, 18, 22, 25, 30, 35, 40, 38, 36, 30, 25, 22, 20, 18]
-    >>> result = _extract_mdd_from_dip(max_dips, mins, values)
+    >>> result = extract_mdd_from_dip(max_dips, mins, values)
     >>> print(result)
     {
         (5, 10): {
@@ -458,36 +418,41 @@ def extract_mdd_from_dip(max_dips, mins, values):
         }
     }
     """
-    # Convert the indices of minimum points to their corresponding values
-    mins_values = np.array(values)[mins]
-
-    # Combine the minimum indices and their values into a list of tuples (index, value)
-    min_points = [point for point in zip(mins, mins_values)]
 
     # Dictionary to store the MDD (Maximum Drawdown) information for each dip
     MDDs = {}
 
     # Iterate over each maximum dip (represented as a tuple of start and end indices)
-    for max_dip in max_dips:
-        # Extract all minimum points that lie within the range of the current dip
-        mins_in_max_dip = [point for point in min_points if max_dip[0] <= point[0] <= max_dip[1]]
+    for start, end in max_dips:
+        # Extract the y-values within the dip range
+        dip_values = np.array(values[start:end+1])
+
+        # Detect local minima within the dip by inverting the values
+        minima_indices = detect_peaks(-dip_values)
 
         # Ensure that there is at least one minimum point within the dip range
-        assert len(mins_in_max_dip) > 0, f"No minimum found within the dip range {max_dip}"
+        assert len(minima_indices) > 0, f"No minimum found within the dip range {(start, end)}"
 
-        # Find the minimum point with the lowest value in the current dip
-        min_in_dip = min(mins_in_max_dip, key=lambda x: x[1])
+        # Identify the index and value of the local minimum within the dip
+        min_index_in_dip = minima_indices[np.argmin(dip_values[minima_indices])]
+        min_value = dip_values[min_index_in_dip]
+        min_index = start + min_index_in_dip
 
-        # Retrieve the maximum value at the start of the dip (before the drawdown occurs)
-        max_value_before_dip = values[max_dip[0]]
+        # Step 3: Find the local maximum in the range before the local minimum
+        # Detect local maxima
+        maxima_indices = detect_peaks(dip_values[:min_index_in_dip])
+        # Ensure that there is at least one minimum point within the dip range
+        assert len(maxima_indices) > 0, f"No maximum found within the dip range {(start, end)} before {min_index}"
+        max_before_min_in_dip = np.argmax(dip_values[maxima_indices])
+        max_value = dip_values[max_before_min_in_dip]
 
         # Calculate the Maximum Drawdown (MDD) as a percentage of the max value before the dip
-        MDD_value = (max_value_before_dip - min_in_dip[1]) / max_value_before_dip
+        MDD_value = (max_value - min_value) / max_value
 
         # Store the MDD value and the corresponding vertical line in the dictionary
-        MDDs[max_dip] = {
+        MDDs[(start, end)] = {
             "value": MDD_value,  # MDD value as a percentage
-            "line": (min_in_dip, (min_in_dip[0], max_value_before_dip))  # Vertical line for visualization
+            "line": ((min_index, min_value), (min_index, max_value))  # Vertical line for visualization
         }
 
     # Return the dictionary containing MDD information for each dip
@@ -512,6 +477,19 @@ def smoother(values, threshold=2):
 
 
 def get_recovery(y_values, max_dips):
+    """
+    Calculate the recovery metrics based on the maximum dips.
+
+    Parameters:
+    - y_values (list or array): The y-values for the data points.
+    - max_dips (list of tuples): List of tuples representing the dips (start_index, end_index).
+
+    Returns:
+    - dict: Dictionary where keys are end indices of the dips and values are dictionaries containing:
+      - 'relative_recovery': The relative recovery difference.
+      - 'absolute_recovery': The absolute recovery difference.
+      - 'line': A tuple representing a vertical line for visualization.
+    """
     recovery = {}  # key: position
     # value: dict(recovery= value, line=((),()))
     for b, e in max_dips:
@@ -590,3 +568,80 @@ def _perform_bayesian_optimization(x_values, y_values, dimensions=10, penalty_fa
         n_jobs=-1
     )
     return int(result.x[0])
+
+
+def resilience_over_time(dips_resilience):
+    """
+    Calculates the differential quotient of resilience metrics over time from a dictionary of dips and their corresponding resilience metrics.
+
+    Parameters:
+    - dips_resilience (dict): A dictionary where keys are tuples representing dips (start, end) and values are dictionaries with resilience metrics.
+      Example:
+      {
+        (3, 7): {"robustness": 0.5, "recovery": 0.8},
+        (10, 42): {"robustness": 0.7, "recovery": 0.5},
+        (69, 75): {"robustness": 0.8, "recovery": 0.7}
+      }
+
+    Returns:
+    - dict: A dictionary with metrics as keys and their differential quotients and overall mean values.
+      Example:
+      {
+        "robustness": {
+            "diff_q": [(42, 0.2), (75, 0.1)],
+            "overall": 0.15
+        },
+        "recovery": {
+            "diff_q": [(42, -0.3), (75, 0.2)],
+            "overall": -0.05
+        }
+      }
+    """
+    # Initialize a dictionary to store results
+    results = {}
+
+    # Extract metrics from the first entry
+    if not dips_resilience:
+        return results  # Return empty result if no data
+
+    # Get the metrics from the first entry
+    first_dip = next(iter(dips_resilience))
+    available_metrics = set(dips_resilience[first_dip].keys())
+
+    # Check that these metrics are present in all entries
+    for metrics_dict in dips_resilience.values():
+        available_metrics.intersection_update(metrics_dict.keys())
+
+    # Calculate differential quotients and overall mean for each metric
+    for metric in available_metrics:
+        # Initialize lists for differential quotients and values
+        diff_q = []
+        prev_end = None
+        prev_value = None
+
+        for (start, end), metrics_dict in dips_resilience.items():
+            if metric in metrics_dict:
+                value = metrics_dict[metric]
+                if prev_value is not None:
+                    # Calculate differential quotient
+                    quotient = (value - prev_value) / (end - prev_end)
+                    diff_q.append((end, quotient))
+
+                # Update previous values
+                prev_end = end
+                prev_value = value
+
+        # Calculate overall mean differential quotient
+        if diff_q:
+            mean_diff_q = sum(q for _, q in diff_q) / len(diff_q)
+        else:
+            mean_diff_q = None  # Handle the case where no differential quotients were calculated
+
+        # Store results
+        results[metric] = {
+            "diff_q": diff_q,
+            "overall": mean_diff_q
+        }
+
+    return results
+
