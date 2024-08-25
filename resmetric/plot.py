@@ -277,7 +277,7 @@ def create_plot_from_data(json_str, **kwargs):
             auc_traces.append(go.Scatter(
                 name=f"AUC {s.name}",
                 legendgroup=f"AUC {s.name}",
-                x=np.arange(1,len(auc_values)),
+                x=np.arange(1,len(auc_values)+1),
                 y=auc_values,
                 mode='lines',
                 marker=dict(color=fig.layout.template.layout.colorway[i])
@@ -287,7 +287,7 @@ def create_plot_from_data(json_str, **kwargs):
             auc_traces.append(go.Scatter(
                 name=f"AUC-exp {s.name}",
                 legendgroup=f"AUC-exp {s.name}",
-                x=np.arange(1, len(auc_values_exp)),
+                x=np.arange(1, len(auc_values_exp)+1),
                 y=auc_values_exp,
                 mode='lines',
                 marker=dict(color=fig.layout.template.layout.colorway[i])
@@ -297,7 +297,7 @@ def create_plot_from_data(json_str, **kwargs):
             auc_traces.append(go.Scatter(
                 name=f"AUC-inv {s.name}",
                 legendgroup=f"AUC-inv {s.name}",
-                x=np.arange(1, len(auc_values_inv)),
+                x=np.arange(1, len(auc_values_inv)+1),
                 y=auc_values_inv,
                 mode='lines',
                 marker=dict(color=fig.layout.template.layout.colorway[i])
