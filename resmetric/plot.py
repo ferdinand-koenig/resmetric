@@ -102,12 +102,13 @@ def create_plot_from_data(json_str, **kwargs):
         global_x_min = min(global_x_min, x_values[0])
         global_x_max = max(global_x_max, x_values[-1])
 
-        # Peak detection and dip extraction
+        # Dip extraction (Find where the shocks are)
         maxs = detect_peaks(np.array(y_values))
-        mins = detect_peaks(-np.array(y_values))
         y_mins = np.array(y_values)[mins]
         dips = _get_dips(y_values, maxs=maxs)
         max_dips = extract_max_dips(dips)
+
+        # TODO only on demand
         mdd_info = extract_mdd_from_dip(max_dips, mins, y_values)
 
         # Compute 1st and 2nd derivatives
