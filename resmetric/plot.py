@@ -105,12 +105,12 @@ def create_plot_from_data(json_str, **kwargs):
 
         ################################################
         # Preprocessing
-        # TODO should actually change y
         # Append smooth criminal traces if requested
         if kwargs.get('include_smooth_criminals'):
+            y_values = smoother(list(y_values), threshold=smoother_threshold)
             smooth_criminals.append(go.Scatter(
                 name=f"Smoothed {s.name}",
-                y=smoother(list(y_values), threshold=smoother_threshold),
+                y=y_values,
                 mode='lines+markers',
                 marker=dict(color=fig.layout.template.layout.colorway[i]),
                 legendgroup=f'Smoothed {s.name}'
@@ -193,7 +193,13 @@ def create_plot_from_data(json_str, **kwargs):
                 )
             ])
 
-        #################################################
+        ###############
+        # Calculate Dips (Local dips). This is not one shock / resilience case!
+        # Required for include_dips and max_dips dip detection algorithm
+        maxs = detect_peaks(np.array(y_values))
+        dips = _get_dips(y_values, maxs=maxs)
+
+        ###############
         # [Advanced][T-Ag] Handle all the advanced agnostic features
         # Append traces for dips and drawdowns if requested
         if kwargs.get('include_dips'):
@@ -219,6 +225,7 @@ def create_plot_from_data(json_str, **kwargs):
                 ))
 
         if kwargs.get('include_draw_downs_shapes'):
+            mins = detect_peaks(-np.array(y_values))
             for mini in mins:
                 next_smaller = _find_next_smaller(maxs, mini)
                 if next_smaller is None:
@@ -244,18 +251,66 @@ def create_plot_from_data(json_str, **kwargs):
                 yaxis='y3'
             ))
 
-        # Peak detection and dip extraction
-        maxs = detect_peaks(np.array(y_values))
-        mins = detect_peaks(-np.array(y_values))
-        y_mins = np.array(y_values)[mins]
-        dips = _get_dips(y_values, maxs=maxs)
-        max_dips = extract_max_dips(dips)
-        mdd_info = extract_mdd_from_dip(max_dips, mins, y_values)
-
         ################################################
         # [T-Dip] Dip Detection
+        # MaxDips Detection (Detects with the help of peaks)
+        # TODO name this different
+        max_dips = extract_max_dips(dips)
+        # TODO add threshold dip
 
-        # [Experimental] Fit the piecewise linear model and add to traces if requested
+        # For a dip, get the maximal draw down (1- Robustness) Information and Recovery Information
+        # Both infos are used later for adding the bars
+        mdd_info = extract_mdd_from_dip(max_dips, y_values)
+        recovery_info = get_recovery(y_values, max_dips)
+
+        # Draw the detected dips
+        for max_dip, info in mdd_info.items():
+            # Draw Recovery Time Line
+            maximal_dips_shapes.append(
+                go.Scatter(
+                    x=[max_dip[0], max_dip[1]],
+                    y=[y_values[max_dip[0]], y_values[max_dip[0]]],
+                    mode='lines',
+                    line=dict(dash='dot', color=fig.layout.template.layout.colorway[i]),
+                    name=f'Max Dips - {s.name}',
+                    legendgroup=f'Max Dips - {s.name}'
+                )
+            )
+            maximal_dips_shapes.append(
+                go.Scatter(
+                    x=[max_dip[1]],
+                    y=[y_values[max_dip[0]]],
+                    mode='markers',
+                    marker=dict(symbol='x', color=fig.layout.template.layout.colorway[i]),
+                    name=f'Max Dips - {s.name}',
+                    legendgroup=f'Max Dips - {s.name}'
+                )
+            )
+            # Draw Maximal Drawdown
+            maximal_dips_shapes.append(
+                go.Scatter(
+                    x=[info['line'][0][0], info['line'][1][0]],
+                    y=[info['line'][0][1], info['line'][1][1]],
+                    mode='lines',
+                    line=dict(color=fig.layout.template.layout.colorway[i], width=2, dash='dash'),
+                    name=f'Max Drawdown {s.name}',
+                    legendgroup=f'Max Dips - {s.name}'
+                )
+            )
+
+        for _, recovery in recovery_info.items():
+            maximal_dips_shapes.append(
+                go.Scatter(
+                    x=[recovery['line'][0][0], recovery['line'][1][0]],
+                    y=[recovery['line'][0][1], recovery['line'][1][1]],
+                    mode='lines',
+                    line=dict(dash='dot', color=fig.layout.template.layout.colorway[i]),
+                    name=f'Recovery Line {s.name}',
+                    legendgroup=f'Max Dips - {s.name}',
+                )
+            )
+
+        # [Experimental] [T-Dip] Fit the piecewise linear model and add to traces if requested
         if kwargs.get('include_lin_reg'):
             # Perform Bayesian Optimization to find the optimal number of segments
             optimal_segments = _perform_bayesian_optimization(x_values, y_values,
@@ -276,75 +331,32 @@ def create_plot_from_data(json_str, **kwargs):
 
         ###############################
         # [T-Dip] Core Resilience
-        # TODO
-        if kwargs.get('include_maximal_dips'):
+        if kwargs.get('include_bars'):
             for max_dip, info in mdd_info.items():
-                maximal_dips_shapes.append(
-                    go.Scatter(
-                        x=[max_dip[0], max_dip[1]],
-                        y=[y_values[max_dip[0]], y_values[max_dip[0]]],
-                        mode='lines',
-                        line=dict(dash='dot', color=fig.layout.template.layout.colorway[i]),
-                        name=f'Max Dips - {s.name}',
-                        legendgroup=f'Max Dips + MDD + rel. Rec - {s.name}'
-                    )
-                )
-                maximal_dips_shapes.append(
-                    go.Scatter(
-                        x=[max_dip[1]],
-                        y=[y_values[max_dip[0]]],
-                        mode='markers',
-                        marker=dict(symbol='x', color=fig.layout.template.layout.colorway[i]),
-                        name=f'Max Dips - {s.name}',
-                        legendgroup=f'Max Dips + MDD + rel. Rec - {s.name}'
-                    )
-                )
-                maximal_dips_shapes.append(
-                    go.Scatter(
-                        x=[info['line'][0][0], info['line'][1][0]],
-                        y=[info['line'][0][1], info['line'][1][1]],
-                        mode='lines',
-                        line=dict(color=fig.layout.template.layout.colorway[i], width=2, dash='dash'),
-                        name=f'Max Drawdown {s.name}',
-                        legendgroup=f'Max Dips + MDD + rel. Rec - {s.name}'
-                    )
-                )
                 maximal_dips_bars.append(
                     go.Bar(
                         x=[info['line'][0][0]],
-                        y=[info['value']],
+                        y=[1 - info['value']],
                         width=1,
                         marker=dict(color=fig.layout.template.layout.colorway[i]),
                         opacity=0.25,
-                        name=f'MDD + rel. Rec Bars - {s.name}',
-                        legendgroup=f'MDD + rel. Rec Bars - {s.name}',
+                        name=f'Robustness - {s.name}',
+                        legendgroup=f'Robustness + rel. Rec Bars - {s.name}',
+                    )
+                )
+            for _, recovery in recovery_info.items():
+                maximal_dips_bars.append(
+                    go.Bar(
+                        x=[recovery['line'][0][0]],
+                        y=[recovery['relative_recovery']],
+                        width=1,
+                        marker=dict(color=fig.layout.template.layout.colorway[i]),
+                        opacity=0.25,
+                        name=f'Rel. Recovery - {s.name}',
+                        legendgroup=f'Robustness + rel. Rec Bars - {s.name}',
                     )
                 )
 
-            if kwargs.get('include_bars'):
-                recovery_info = get_recovery(y_values, max_dips)
-                for e, recovery in recovery_info.items():
-                    maximal_dips_bars.append(
-                        go.Bar(
-                            x=[recovery['line'][0][0]],
-                            y=[recovery['relative_recovery']],
-                            width=1,
-                            marker=dict(color=fig.layout.template.layout.colorway[i]),
-                            opacity=0.25,
-                            name=f'Rel. Recovery - {s.name}',
-                            legendgroup=f'MDD + rel. Rec Bars - {s.name}',
-                        )
-                    )
-                    maximal_dips_shapes.append(
-                        go.Scatter(
-                            x=[recovery['line'][0][0], recovery['line'][1][0]],
-                            y=[recovery['line'][0][1], recovery['line'][1][1]],
-                            mode='lines',
-                            line=dict(dash='dot', color=fig.layout.template.layout.colorway[i]),
-                            name=f'Recovery Line {s.name}',
-                            legendgroup=f'Max Dips + MDD + rel. Rec - {s.name}',
-                        )
-                    )
 
         # Update the original series with a pale color
         s.update(
