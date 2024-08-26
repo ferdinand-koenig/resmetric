@@ -9,7 +9,7 @@ setup(
     url='https://github.com/ferdinand-koenig/resmetric',
     author='Ferdinand Koenig',
     author_email='ferdinand@koenix.de',
-    packages=find_packages(exclude=['development','.idea']),
+    packages=find_packages(exclude=['development', '.idea']),
     entry_points={
         'console_scripts': [
             'resmetric-cli=resmetric.cli:main',

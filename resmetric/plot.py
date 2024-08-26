@@ -437,7 +437,7 @@ def create_plot_from_data(json_str, **kwargs):
                     )
                 )
         ###############
-        # TODO [T-Dip] GR
+        # [T-Dip] Integrated Resilience Metric (IRM) GR
         if kwargs.get('include_gr'):
             gr = get_max_dip_integrated_resilience_metric(y_values, max_dips)
             assert set(max_dips) == set(gr.keys()), "Keys (Dips) do no match"
@@ -452,7 +452,8 @@ def create_plot_from_data(json_str, **kwargs):
                         name=f'IRM GR - {s.name}',
                         hovertext=f'IRM GR {max_dip} - {s.name}',
                         hoverinfo='x+y+text',  # Show x, y, and hover text
-                        legendgroup=f'[T-Dip] Integrated Resilience Metric GR - {s.name}',
+                        legendgroup=f'[T-Dip] IRM GR - {s.name}',
+                        yaxis='y6'
                     )
                 )
 
@@ -464,7 +465,7 @@ def create_plot_from_data(json_str, **kwargs):
         # AUC
         # length
         if (kwargs.get('calc_res_over_time') and
-                (kwargs.get('include_bars') or kwargs.get('include_dip_auc'))):
+                (kwargs.get('include_bars') or kwargs.get('include_dip_auc') or kwargs.get('include_gr'))):
             # Construct input
             dips_resilience = {d: {} for d in max_dips}
             if kwargs.get('include_bars'):
@@ -478,6 +479,10 @@ def create_plot_from_data(json_str, **kwargs):
                 assert set(dips_resilience.keys()) == set(max_dip_auc_info.keys()), "Keys (Dips) do no match"
                 for dip, auc in max_dip_auc_info.items():
                     dips_resilience[dip]['auc'] = auc
+
+            if kwargs.get('include_gr'):
+                for dip, gr_value in gr.items():
+                    dips_resilience[dip]['IRM GR'] = gr_value
 
             # take output and draw the traces
             for metric, metric_change in resilience_over_time(dips_resilience).items():
@@ -559,6 +564,14 @@ def create_plot_from_data(json_str, **kwargs):
             side='right',
             autoshift=True,
             zeroline=True
+        ),
+        yaxis6=dict(
+            title='Integrated Resilience Metric (IRM) GR',
+            overlaying='y',
+            anchor='free',
+            side='right',
+            autoshift=True,
+            zeroline=True
         )
     )
 
@@ -588,12 +601,12 @@ def create_plot_from_data(json_str, **kwargs):
         all_traces += derivative_traces
     if kwargs.get('include_lin_reg'):
         all_traces += lin_reg_traces
-    if kwargs.get('calc_res_over_time'):
-        all_traces += antifrag_diff_qu_traces
     if kwargs.get('include_max_dip_auc'):
         all_traces += max_dip_auc_bars
     if kwargs.get('include_gr'):
         all_traces += gr_bars
+    if kwargs.get('calc_res_over_time'):
+        all_traces += antifrag_diff_qu_traces
 
     # Update the figure with new data and layout
     fig = go.Figure(data=all_traces, layout=fig.layout)
