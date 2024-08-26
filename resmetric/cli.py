@@ -65,7 +65,7 @@ def print_workflow():
     ├──────────────────────────────────┤ ├───────────────────────────────────────────┤                  
     │ --auc    AUC devided by length   │ │   --max-dip-auc    AUC per dip            │                  
     │          of time frame and       │ │   --bars           Robustness, Recovery,  │                  
-    │          weighted by kernel      │ │                    and Recovery Time      │                  
+    │          weighted by kernel      │ │                    and Recovery Rate      │                  
     │ --count  How many times dropped  │ └─────────────────┬─────────────────────────┘                  
     │          below threshold         │                   ▼                                            
     │ --time   How much time spent     │ ┌───────────────────────────────────────────────────────┐
@@ -151,7 +151,7 @@ def main():
     mutually_exclusive_group = dip_detect_group.add_mutually_exclusive_group()
 
     mutually_exclusive_group.add_argument('--max_dips', action='store_true', default=True,
-                                          help='Detect maximal dips based on local maxima')
+                                          help='Detect maximal dips based on local maxima (default)')
     mutually_exclusive_group.add_argument('--threshold-dips', action='store_true',
                                           help='Detect dips based on threshold')
     mutually_exclusive_group.add_argument('--manual-dips', type=parse_manual_dips,
@@ -165,7 +165,24 @@ def main():
     basic_group.add_argument('--max-dip-auc', action='store_true',
                              help='Include AUC bars for the AUC of one maximal dip (AUC devided by the length of the '
                                   'time frame)')
-    basic_group.add_argument('--bars', action='store_true', help='Include bars for MDD and recovery.')
+    basic_group.add_argument('--bars', action='store_true',
+                             help='Include bars for robustness, recovery time and recovery.')
+    # Create the mutually exclusive group within the dip_detect_group
+    recovery_algorithm_group = basic_group.add_mutually_exclusive_group()
+
+    recovery_algorithm_group.add_argument('--ada-ca', action='store_true', default=True,
+                                          help='Adaptive capacity. Algorithm for calculating recovery. '
+                                               'The first one is the ratio of new to prior steady state\'s value. '
+                                               '(Q(t_ns) / Q(t_0)) (default)')
+    recovery_algorithm_group.add_argument('--rec-ab', action='store_true',
+                                          help='Recovery ability. Algorithm for calculating recovery. '
+                                               'abs((Q(t_ns) - Q(t_r))/ (Q(t_0) - Q(t_r))) '
+                                               'where Q(t_r) is the local minimum within a dip (Robustness).')
+
+    basic_group.add_argument('--gr', action='store_true',
+                             help='Include the Integrated Resilience Metric '
+                                  '(Sansavini, https://doi.org/10.1007/978-94-024-1123-2_6, Chapter 6, formula 6.12)')
+
 
     anti_fragility_group = parser.add_argument_group('[T-Dip] Resilience-Related Metrics over Time Options ('
                                                      '"Anti-Fragility")')
@@ -221,7 +238,13 @@ def main():
               "See help page '-h'")
         sys.exit(1)
 
-    dip_detect_algorithm = 'manual_dips' if args.manual_dips else 'threshold_dip' if args.threshold_dip else 'max_dips'
+    dip_detect_algorithm = 'manual_dips' if args.manual_dips else 'threshold_dip' if args.threshold_dips else 'max_dips'
+    recovery_algorithm = 'recovery_ability' if args.rec_ab else 'adaptive_capacity'
+    # if args.gr and not args.rec_ab:
+    #     print('\n[Override notice] --gr requires --rec-ab as recovery algorithm.\n'
+    #           'This sets --rec-ab and changes the algorithm. See -h for more info.')
+    #     recovery_algorithm = 'recovery_ability'
+
     # Convert args to a dictionary of keyword arguments
     kwargs = {
         'include_auc': args.auc,
@@ -235,6 +258,7 @@ def main():
         'include_draw_downs_shapes': args.drawdowns_shapes,
         'include_maximal_dips': args.max_dips,
         'include_bars': args.bars,
+        'include_gr': args.gr,
         'include_derivatives': args.deriv,
         'include_lin_reg': args.lg,
         'penalty_factor': args.penalty_factor,
@@ -243,7 +267,8 @@ def main():
         'smoother_threshold': args.smoother_threshold,
         'calc_res_over_time': args.calc_res_over_time,
         'dip_detection_algorithm': dip_detect_algorithm,
-        'manual_dips': args.manual_dips
+        'manual_dips': args.manual_dips,
+        'recovery_algorithm': recovery_algorithm,
     }
 
     plot_from_json_file(args.json_file, silent=args.silent, save_path=args.save, **kwargs)
