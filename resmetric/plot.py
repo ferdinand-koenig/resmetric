@@ -17,7 +17,10 @@ from .metrics import (
     _perform_bayesian_optimization,
     _make_color_pale_hex,
     resilience_over_time,
-    get_max_dip_auc
+    get_max_dip_auc,
+    mdd_to_robustness,
+    dip_to_recovery_rate,
+    get_max_dip_integrated_resilience_metric
 )
 
 
@@ -54,6 +57,13 @@ def create_plot_from_data(json_str, **kwargs):
         - include_maximal_dips (bool): Include maximal dips, maximal draw-downs,
           and recoveries.
         - include_bars (bool): Include bars for robustness, recovery and recovery time.
+        - recovery_algorithm (str or None): Decides the recovery algorithm. Can either be 'adaptive_capacity' (default)
+          or 'recovery_ability'. The first one is the ratio of new to prior steady state's value (Q(t_ns) / Q(t_0)).
+          The last one is abs((Q(t_ns) - Q(t_r))/ (Q(t_0) - Q(t_r)))
+          where Q(t_r) is the local minimum within a dip (Robustness).
+        - include_gr (bool): Include the Integrated Resilience Metric
+          (cf. Sansavini, https://doi.org/10.1007/978-94-024-1123-2_6, Chapter 6, formula 6.12).
+          Requires kwarg recovery_algorithm='recovery_ability'.
         - include_derivatives (bool): Include derivatives traces.
         - include_lin_reg (bool): Include linear regression traces.
         - penalty_factor (float): Penalty factor for Bayesian Optimization
@@ -77,7 +87,17 @@ def create_plot_from_data(json_str, **kwargs):
     """
     # Set default dip detection algorithm to 'max_dips'
     dip_detection_algorithm = kwargs.get('dip_detection_algorithm', 'max_dips')
-    # TODO update readme + add the new anti-fragility func
+    recovery_algorithm = kwargs.get('recovery_algorithm', 'adaptive_capacity')
+
+    # # Validate the include_gr parameter
+    # if kwargs.get('include_gr') and recovery_algorithm != 'recovery_ability':
+    #     raise ValueError(
+    #         "The 'include_gr' option requires the 'recovery_algorithm' to be set to 'recovery_ability'. "
+    #         "Please set 'recovery_algorithm' to 'recovery_ability' to include the Integrated Resilience Metric."
+    #     )
+
+    # TODO [END] update readme + add the new anti-fragility func
+    # TODO [END] update ASCII art
 
     # Convert JSON string to Plotly figure
     fig = pio.from_json(json_str)
@@ -98,6 +118,7 @@ def create_plot_from_data(json_str, **kwargs):
     lin_reg_traces = []
     antifrag_diff_qu_traces = []
     max_dip_auc_bars = []
+    gr_bars = []
 
     # Retrieve optional arguments with defaults
     threshold = kwargs.get('threshold', 80)
@@ -285,7 +306,7 @@ def create_plot_from_data(json_str, **kwargs):
         # For a dip, get the maximal draw down (1- Robustness) Information and Recovery Information
         # Both infos are used later for adding the bars
         mdd_info = extract_mdd_from_dip(max_dips, y_values)
-        recovery_info = get_recovery(y_values, max_dips)
+        recovery_info = get_recovery(y_values, max_dips, algorithm=recovery_algorithm)
         max_dip_auc_info = get_max_dip_auc(y_values, max_dips)
 
         # Draw the detected dips
@@ -332,8 +353,10 @@ def create_plot_from_data(json_str, **kwargs):
                         width=1,
                         marker=dict(color=fig.layout.template.layout.colorway[i]),
                         opacity=0.25,
-                        name=f'Max Dip {max_dip} (Local) AUC - {s.name}',
-                        legendgroup=f'Max Dip (Local) AUC - {s.name}',
+                        name=f'(Local) AUC for dip {max_dip} - {s.name}',
+                        hovertext=f'(Local) AUC for dip {max_dip} - {s.name}',
+                        hoverinfo='x+y+text',  # Show x, y, and hover text
+                        legendgroup=f'[T-Dip] (Local) AUC per dip - {s.name}',
                     )
                 )
 
@@ -371,16 +394,32 @@ def create_plot_from_data(json_str, **kwargs):
         ###############################
         # [T-Dip] Core Resilience
         if kwargs.get('include_bars'):
+            assert set(max_dips) == set(mdd_info.keys()), "Keys (Dips) do no match"
             for max_dip, info in mdd_info.items():
                 maximal_dips_bars.append(
                     go.Bar(
                         x=[info['line'][0][0]],
-                        y=[1 - info['value']],
+                        y=[mdd_to_robustness(info['value'])],
                         width=1,
                         marker=dict(color=fig.layout.template.layout.colorway[i]),
                         opacity=0.25,
                         name=f'Robustness - {s.name}',
-                        legendgroup=f'Robustness + rel. Rec Bars - {s.name}',
+                        hovertext=f'Robustness - {s.name}',
+                        hoverinfo='x+y+text',  # Show x, y, and hover text
+                        legendgroup=f'[T-Dip] Resilience - {s.name}',
+                    )
+                )
+                maximal_dips_bars.append(
+                    go.Bar(
+                        x=[max_dip[1]],
+                        y=[dip_to_recovery_rate(max_dip)],
+                        width=1,
+                        marker=dict(color=fig.layout.template.layout.colorway[i]),
+                        opacity=0.25,
+                        name=f'Recovery Rate - {s.name}',
+                        hovertext=f'Recovery Rate - {s.name}',
+                        hoverinfo='x+y+text',  # Show x, y, and hover text
+                        legendgroup=f'[T-Dip] Resilience - {s.name}',
                     )
                 )
             for _, recovery in recovery_info.items():
@@ -392,9 +431,31 @@ def create_plot_from_data(json_str, **kwargs):
                         marker=dict(color=fig.layout.template.layout.colorway[i]),
                         opacity=0.25,
                         name=f'Rel. Recovery - {s.name}',
-                        legendgroup=f'Robustness + rel. Rec Bars - {s.name}',
+                        hovertext=f'Rel. Recovery - {s.name}',
+                        hoverinfo='x+y+text',  # Show x, y, and hover text
+                        legendgroup=f'[T-Dip] Resilience - {s.name}',
                     )
                 )
+        ###############
+        # TODO [T-Dip] GR
+        if kwargs.get('include_gr'):
+            gr = get_max_dip_integrated_resilience_metric(y_values, max_dips)
+            assert set(max_dips) == set(gr.keys()), "Keys (Dips) do no match"
+            for dip, gr_value in gr.items():
+                gr_bars.append(
+                    go.Bar(
+                        x=[dip[1]],
+                        y=[gr_value],
+                        width=1,
+                        marker=dict(color=fig.layout.template.layout.colorway[i]),
+                        opacity=0.25,
+                        name=f'IRM GR - {s.name}',
+                        hovertext=f'IRM GR {max_dip} - {s.name}',
+                        hoverinfo='x+y+text',  # Show x, y, and hover text
+                        legendgroup=f'[T-Dip] Integrated Resilience Metric GR - {s.name}',
+                    )
+                )
+
 
         ##############################
         # [T-Dip] "antiFragility"
@@ -407,14 +468,14 @@ def create_plot_from_data(json_str, **kwargs):
             # Construct input
             dips_resilience = {d: {} for d in max_dips}
             if kwargs.get('include_bars'):
-                assert set(dips_resilience.keys()) == set(mdd_info.keys()), "Keys do no match"
+                assert set(dips_resilience.keys()) == set(mdd_info.keys()), "Keys (Dips) do no match"
                 for dip, mdd in mdd_info.items():
-                    dips_resilience[dip]['robustness'] = 1 - mdd['value']  # TODO add robustness as bars
+                    dips_resilience[dip]['robustness'] = mdd_to_robustness(mdd['value'])
                     dips_resilience[dip]['recovery'] = recovery_info[dip[1]]['relative_recovery']
-                    dips_resilience[dip]['(recovery time)^-1'] = 1/(dip[1] - dip[0])  # TODO add recovery time as bars
+                    dips_resilience[dip]['recovery rate'] = dip_to_recovery_rate(dip)
 
             if kwargs.get('include_max_dip_auc'):
-                assert set(dips_resilience.keys()) == set(max_dip_auc_info.keys()), "Keys do no match"
+                assert set(dips_resilience.keys()) == set(max_dip_auc_info.keys()), "Keys (Dips) do no match"
                 for dip, auc in max_dip_auc_info.items():
                     dips_resilience[dip]['auc'] = auc
 
@@ -434,8 +495,9 @@ def create_plot_from_data(json_str, **kwargs):
                         ),
                         name=f'Diff. quot. of {metric} - {s.name}',
                         hovertext=f'Diff. quot. of {metric} - <br>{s.name}',
-                        legendgroup=f'Antifragility - {s.name}',
-                        yaxis='y5' if metric != '(recovery time)^-1' else 'y5'
+                        legendgroup=f'"Antifragility" - {s.name}',
+                        hoverinfo='x+y+text',  # Show x, y, and hover text
+                        yaxis='y5'
                     )
                 )
                 antifrag_diff_qu_traces.append(
@@ -445,9 +507,9 @@ def create_plot_from_data(json_str, **kwargs):
                         mode='lines',
                         name=f'Mean Diff. quot. of {metric} - {s.name}',
                         hovertext=f'Mean Diff. quot. of {metric} - <br>{s.name}',
-                        legendgroup=f'Antifragility - {s.name}',
+                        legendgroup=f'"Antifragility" - {s.name}',
                         line=dict(dash='dash', color='black'),
-                        yaxis='y5' if metric != '(recovery time)^-1' else 'y5',
+                        yaxis='y5',
                         hoverinfo='x+y+text',  # Show x, y, and hover text
                     )
                 )
@@ -530,6 +592,8 @@ def create_plot_from_data(json_str, **kwargs):
         all_traces += antifrag_diff_qu_traces
     if kwargs.get('include_max_dip_auc'):
         all_traces += max_dip_auc_bars
+    if kwargs.get('include_gr'):
+        all_traces += gr_bars
 
     # Update the figure with new data and layout
     fig = go.Figure(data=all_traces, layout=fig.layout)
