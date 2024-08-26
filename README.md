@@ -157,8 +157,18 @@ resmetric-cli --count --time --auc .\example\fig.json
 The calculations for the linear regression (`--lg`) take some minutes.
 So take a small break or fill up your coffee cup meanwhile :)
 
-## Contributing
+## Assumptions
+Right now, the code has the assumptions
+- that the provided data is always 0 &leq; data &leq; 1 and
+- that the time index starts with 0 and increments by 1 unit with each step
+
+## Demonstration cases
+There are additional simple, synthetic cases to test the application in the folder `/evaluation/`.
+
+## Contributing and developing
 Contributions are welcome! Please submit a pull request or open an issue on the [GitHub repository](https://github.com/ferdinand-koenig/resmetric).
+
+Please check the development guide (README.md) and scripts in `/development/`
 
 ## About
 ResMetric is a Python module developed as part of my Master’s (MSc) study project in Computer Science at Humboldt University of Berlin. It is a project within the Faculty of Mathematics and Natural Sciences, Department of Computer Science, Chair of Software Engineering.

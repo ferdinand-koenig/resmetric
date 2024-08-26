@@ -41,8 +41,7 @@ def print_workflow():
             │ Not yet implemented:                                    │                                  
             │ - Exponential Moving Average [EMA]                      │                                  
             │ - Low-Pass Filters                                      │                                  
-            │ - Fourier Transformation                                │                                  
-            │                                                         │                                  
+            │ - Fourier Transformation                                │                                                               
             └─────────────────────────────────────────────────────────┘                                  
                                    │                                                                    
                     ┌──────────────┴──────────────────────┐                                             
