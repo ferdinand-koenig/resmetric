@@ -308,6 +308,67 @@ def _get_dips(values, maxs=None):
     return dips  # Return the list of detected dips
 
 
+def extract_max_dips_based_on_threshold(values, threshold):
+    """
+    Identifies the dips in the `values` array where the values fall below the `threshold`
+    and then rise above it again. A dip is recorded only if it starts above the threshold,
+    falls below, and then returns above the threshold.
+
+    Parameters:
+    values (list or np.ndarray): The array of values to analyze.
+    threshold (float): The threshold below which a dip is identified.
+
+    Returns:
+    list of tuples: A list of (start_index, end_index) tuples, each representing the
+                    start and end indices of a dip.
+
+    Example:
+    >>> values = [9, 12, 15, 8, 5, 11, 14, 7, 20, 4]
+    >>> threshold = 10
+    >>> extract_max_dips_based_on_threshold(values, threshold)
+    [(3, 5), (7, 8)]
+    """
+
+    # Convert values to a NumPy array and create a binary array where values are above the threshold
+    values = np.array(values)
+    below_list = ((values - threshold) > 0).astype(int)
+
+    def _sign_changes_series(series):
+        """
+        Calculates sign changes in the binary series.
+
+        Parameters:
+        series (np.ndarray): The binary series indicating whether values are above (1) or below (0) the threshold.
+
+        Returns:
+        np.ndarray: An array of sign changes where 1 indicates an increase and -1 indicates a decrease.
+        """
+        sign_changes_list = [0]  # No sign change at index 0 possible
+        for i in range(1, len(series)):
+            sign_changes_list.append(series[i] - series[i - 1])
+        return np.array(sign_changes_list)
+
+    # Detect sign changes in the binary series
+    sign_changes = _sign_changes_series(below_list)
+
+    # Find indices where the series changes from above to below the threshold
+    minus_one = np.argwhere(sign_changes == -1).flatten()
+
+    # Find indices where the series changes from below to above the threshold
+    plus_one = np.argwhere(sign_changes == 1).flatten()
+
+    # Align start (minus_one) and end (plus_one) indices
+    if len(minus_one) > 0 and len(plus_one) > 0 and minus_one[0] > plus_one[0]:
+        plus_one = plus_one[1:]
+
+    # Adjust minus_one indices to correct positions
+    minus_one -= 1
+
+    # Pair start and end indices of dips
+    dips = list(zip(minus_one, plus_one))
+
+    return dips
+
 def extract_max_dips_based_on_maxs(entries):
     """
     Extract maximal dips from a list of timestamp tuples (t0, t1).
