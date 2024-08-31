@@ -1,3 +1,5 @@
+from datetime import datetime
+import warnings
 import plotly.graph_objects as go
 import plotly.io as pio
 import numpy as np
@@ -20,7 +22,8 @@ from .metrics import (
     get_max_dip_auc,
     mdd_to_robustness,
     dip_to_recovery_rate,
-    get_max_dip_integrated_resilience_metric
+    get_max_dip_integrated_resilience_metric,
+    extract_max_dips_based_on_threshold
 )
 
 
@@ -293,15 +296,12 @@ def create_plot_from_data(json_str, **kwargs):
         if dip_detection_algorithm == 'max_dips':
             max_dips = extract_max_dips_based_on_maxs(dips)
         elif dip_detection_algorithm == 'threshold_dips':
-            # TODO add threshold dip
-            # Implement logic for threshold_dip
-            pass
+            max_dips = extract_max_dips_based_on_threshold(y_values, threshold)
         elif dip_detection_algorithm == 'manual_dips':
             max_dips = kwargs.get('manual_dips')
             if not max_dips:
                 raise ValueError('No dips provided: manual_dips must hold values. See help or doc string')
-
-
+            #TODO implement lr dip
 
         # For a dip, get the maximal draw down (1- Robustness) Information and Recovery Information
         # Both infos are used later for adding the bars
@@ -372,24 +372,91 @@ def create_plot_from_data(json_str, **kwargs):
                 )
             )
 
-        # [Experimental] [T-Dip] Fit the piecewise linear model and add to traces if requested
+        # [T-Dip] Fit the piecewise linear model and add to traces if requested
         if kwargs.get('include_lin_reg'):
-            # Perform Bayesian Optimization to find the optimal number of segments
-            optimal_segments = _perform_bayesian_optimization(x_values, y_values,
-                                                              penalty_factor=penalty_factor, dimensions=dimensions)
-            pwlf_model = pwlf.PiecewiseLinFit(x_values, y_values)
-            pwlf_model.fit(optimal_segments)
-            y_hat = pwlf_model.predict(x_values)
-            lin_reg_traces.append(
-                go.Scatter(
-                    x=x_values,
-                    y=y_hat,
-                    mode='lines',
-                    line=dict(color=fig.layout.template.layout.colorway[i]),
-                    name=f'PWLF ({optimal_segments} Segments) - {s.name}',
-                    legendgroup=f'PWLF - {s.name}'
-                )
-            )
+            # Suppress only UserWarnings temporarily
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", category=UserWarning)
+
+                # Perform Bayesian Optimization to find the optimal number of segments
+                print(f"[{datetime.now().strftime('%H:%M:%S')}] Calculating linear regression"
+                      f" of series {i + 1} of {len(series)}")
+                optimal_segments = _perform_bayesian_optimization(x_values, y_values,
+                                                                  penalty_factor=penalty_factor, dimensions=dimensions)
+                pwlf_model = pwlf.PiecewiseLinFit(x_values, y_values)
+                pwlf_model.fit(optimal_segments)
+                # y_hat = pwlf_model.predict(x_values)
+                # y_hat = ""
+
+                # if i == 0:
+                # breakpoints = [0., 5.4322327, 57.26332236, 58.45461669, 85.81890165, 101.53587274, 101.80619173,
+                #                135.]
+                # y_hat = "0.85191131 0.76847839 0.68504547 0.60161254 0.51817962 0.434746 0.39885111 0.399145 0.39943888 0.39973276 0.40002664 0.4003205 0.4006144  0.40090829 0.40120217 0.40149605 0.40178993 0.40208381 0.40237769 0.40267158 0.40296546 0.40325934 0.40355322 0.4038471 0.40414098 0.40443486 0.40472875 0.40502263 0.40531651 0.40561039 0.40590427 0.40619815 0.40649204 0.40678592 0.4070798  0.40737368 0.40766756 0.40796144 0.40825532 0.40854921 0.40884309 0.40913697 0.40943085 0.40972473 0.41001861 0.4103125  0.41060638 0.4109002 0.41119414 0.41148802 0.4117819  0.41207578 0.41236967 0.41266355 0.41295743 0.41325131 0.41354519 0.41383907 0.31021241 0.2467688 0.24778458 0.24880035 0.24981612 0.25083189 0.25184767 0.25286344 0.25387921 0.25489498 0.25591075 0.25692653 0.2579423  0.25895807 0.25997384 0.26098962 0.26200539 0.26302116 0.26403693 0.2650527 0.26606848 0.26708425 0.26810002 0.26911579 0.27013156 0.27114734 0.27216311 0.27317888 0.27182451 0.2597527  0.24768089 0.23560908 0.22353727 0.21146546 0.19939365 0.18732184 0.17525003 0.16317821 0.1511064  0.13903459 0.12696278 0.11489097 0.10281916 0.09074735 0.37601681 0.37518869 0.37436058 0.37353247 0.37270435 0.37187624 0.37104813 0.37022002 0.3693919  0.36856379 0.36773568 0.36690756 0.36607945 0.36525134 0.36442322 0.36359511 0.362767   0.36193888 0.36111077 0.36028266 0.35945455 0.35862643 0.35779832 0.35697021 0.35614209 0.35531398 0.35448587 0.35365775 0.35282964 0.35200153 0.35117341 0.3503453  0.34951719 0.34868908"
+                # slopes = [-8.34329234e-02,  2.93881551e-04, -1.40772633e-01,  1.01577219e-03, -1.20718111e-02,  1.07983132e+00, -8.28113063e-04]
+                # elif i == 1:
+                #     breakpoints = [0., 6.90296868, 55.74162991, 57.60297693, 95., 100.889095, 102.09569763, 103.129211,
+                #                    135.]
+                #     y_hat = "0.72534864 0.75215664 0.77896464 0.80577264 0.83258065 0.85938865 0.88619665 0.91042743 0.91067467 0.91092191 0.91116915 0.91141639 0.91166363 0.91191087 0.91215811 0.91240535 0.9126526  0.91289984 0.91314708 0.91339432 0.91364156 0.9138888  0.91413604 0.91438328 0.91463052 0.91487776 0.915125   0.91537224 0.91561948 0.91586672 0.91611396 0.9163612  0.91660845 0.91685569 0.91710293 0.91735017 0.91759741 0.91784465 0.91809189 0.91833913 0.91858637 0.91883361 0.91908085 0.91932809 0.91957533 0.91982257 0.92006981 0.92031705 0.9205643  0.92081154 0.92105878 0.92130602 0.92155326 0.9218005 0.92204774 0.92229498 0.90006571 0.81331949 0.76059833 0.75955256 0.7585068  0.75746103 0.75641527 0.75536951 0.75432374 0.75327798 0.75223221 0.75118645 0.75014069 0.74909492 0.74804916 0.74700339 0.74595763 0.74491187 0.7438661  0.74282034 0.74177457 0.74072881 0.73968305 0.73863728 0.73759152 0.73654575 0.73549999 0.73445423 0.73340846 0.7323627  0.73131693 0.73027117 0.72922541 0.72817964 0.72713388 0.72608812 0.72504235 0.72399659 0.72295082 0.72190506 0.78370612 0.84550719 0.90730825 0.96910932 1.03091038 1.00042938 0.23014837 0.4685917  0.51407358 0.51508341 0.51609325 0.51710308 0.51811292 0.51912275 0.52013258 0.52114242 0.52215225 0.52316209 0.52417192 0.52518175 0.52619159 0.52720142 0.52821126 0.52922109 0.53023092 0.53124076 0.53225059 0.53326043 0.53427026 0.53528009 0.53628993 0.53729976 0.5383096  0.53931943 0.54032927 0.5413391 0.54234893 0.54335877 0.5443686 0.54537844"
+                #     slopes = [2.68080029e-02,  2.47240621e-04, -8.67462224e-02, -1.04576396e-03, 6.18010647e-02, -7.70281016e-01,  3.45191395e-01,  1.00983408e-03]
+                # y_hat = y_hat.split()
+
+                # lin_reg_traces.append(
+                #     go.Scatter(
+                #         x=x_values,
+                #         y=y_hat,
+                #         mode='lines',
+                #         line=dict(color=fig.layout.template.layout.colorway[i]),
+                #         # name=f'PWLF ({optimal_segments} Segments) - {s.name}',  TODO
+                #         name=f'PWLF (x Segments) - {s.name}',
+                #         legendgroup=f'PWLF - {s.name}'
+                #     )
+                # )
+
+                # Extract breakpoints and slopes
+                breakpoints = pwlf_model.fit_breaks
+
+                slopes = pwlf_model.calc_slopes()
+                for j in range(len(breakpoints)):
+                    try:
+                        next_bigger = round(breakpoints[j+1])
+                    except:
+                        next_bigger = -1
+                    this = round(breakpoints[j])
+                    breakpoints[j] = this if not next_bigger == this else this-1
+                # print(f"bp:{breakpoints}")
+
+                # Extract start and end points of each segment
+                segments = []
+                for j in range(len(breakpoints) - 1):
+                    start_x = breakpoints[j]
+                    end_x = breakpoints[j + 1]
+                    start_y = pwlf_model.predict(start_x)[0]
+                    end_y = pwlf_model.predict(end_x)[0]  #  TODO
+                    # start_y = y_hat[start_x]
+                    # end_y = y_hat[end_x]
+                    slope = slopes[j]
+                    segments.append({
+                        'start_point': (start_x, start_y),
+                        'end_point': (end_x, end_y),
+                        'slope': slope
+                    })
+
+                filtered_segments = [seg for seg in segments if abs(seg['slope']) < .5e-2]
+
+                for segment in filtered_segments:
+                    start_point = segment['start_point']
+                    end_point = segment['end_point']
+                    lin_reg_traces.append(
+                        go.Scatter(
+                            x=[start_point[0], end_point[0]],
+                            y=[start_point[1], end_point[1]],
+                            mode='lines',
+                            line=dict(color=fig.layout.template.layout.colorway[i]),
+                            name=f'PWLF ({optimal_segments} Segments) - {s.name}',
+                            # name=f'PWLF (x Segments) - {s.name}',
+                            legendgroup=f'PWLF - {s.name}'
+                        )
+                    )
 
         ###############################
         # [T-Dip] Core Resilience
@@ -456,7 +523,6 @@ def create_plot_from_data(json_str, **kwargs):
                         yaxis='y6'
                     )
                 )
-
 
         ##############################
         # [T-Dip] "antiFragility"
@@ -525,6 +591,9 @@ def create_plot_from_data(json_str, **kwargs):
             marker=dict(color=_make_color_pale_hex(fig.layout.template.layout.colorway[i])),
             line=dict(color=_make_color_pale_hex(fig.layout.template.layout.colorway[i]))
         )
+        if i == 0:
+            pass
+            # break  # TODO Remove
 
     # Include threshold line if requested
     if kwargs.get('include_time_below_thresh') or kwargs.get('include_count_below_thresh'):
