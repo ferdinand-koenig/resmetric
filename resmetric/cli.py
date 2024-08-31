@@ -30,63 +30,65 @@ def plot_from_json_file(json_file, silent=False, save_path=None, **kwargs):
 
 def print_workflow():
     workflow = u"""
-                                 Data                                                                   
-                                   │                                                                    
-                                   ▼                                                                    
-            ┌─────────────────────────────────────────────────────────┐                                  
-            │          Preprocessing                                  │                                  
-            │─────────────────────────────────────────────────────────│                                  
-            │ --smooth_criminal   Threshold-based value update filter │                                  
-            │─────────────────────────────────────────────────────────│                                  
-            │ Not yet implemented:                                    │                                  
-            │ - Exponential Moving Average [EMA]                      │                                  
-            │ - Low-Pass Filters                                      │                                  
-            │ - Fourier Transformation                                │                                                               
-            └─────────────────────────────────────────────────────────┘                                  
-                                   │                                                                    
-                    ┌──────────────┴──────────────────────┐                                             
-                    ▼                                     ▼                                             
-        Dip-Agnostic Track [T-Ag]            Dip-Dependent Track [T-Dip]                                
-                    │                                     ▼                                             
-                    │                        ┌──────────────────────┐                                   
-                    │                        │     Detect Dips      │                                   
-                    │                        ├──────────────────────┤                                   
-                    │                        │ --max-dips           │                                   
-                    │                        │ --threshold-dip      │
-                    │                        │ --manual-dips        │                                   
-                    │                        │ --lg [experimental]  │                                    
-                    │                        │                      │                                   
-                    │                        │ Not yet implemented: │                   
-                    │                        │ --std [x sigma band] │                                   
-                    │                        └────────────┬─────────┘                                  
-                    ▼                                     ▼                                             
-    ┌──────────────────────────────────┐ ┌───────────────────────────────────────────┐                  
-    │    Calculate Resilience          │ │   Calculate Resilience  (per Dip)         │                  
-    ├──────────────────────────────────┤ ├───────────────────────────────────────────┤                  
-    │ --auc    AUC devided by length   │ │   --max-dip-auc    AUC per dip            │                  
-    │          of time frame and       │ │   --bars           Robustness, Recovery,  │                  
-    │          weighted by kernel      │ │                    and Recovery Rate      │                  
-    │ --count  How many times dropped  │ └─────────────────┬─────────────────────────┘                  
-    │          below threshold         │                   ▼                                            
-    │ --time   How much time spent     │ ┌───────────────────────────────────────────────────────┐
-    │          below threshold         │ │         Calculate "Antifragility" /                   │
-    │ --deriv  Show the 1st and 2nd    │ │         Resilience over Time                          │
-    │          derivatives             │ ├───────────────────────────────────────────────────────┤
-    │                                  │ │ --calc-res-over-time    Calculate the differential    │
-    │ Advanced                         │ │                         quotient for every resilience │
-    │ --dips                           │ │                         metric of this track          │
-    │ --drawdowns_traces               │ └──────────────────────────┬────────────────────────────┘
-    │ --drawdowns_shapes               │                            │                                   
-    └──────────────┬───────────────────┘                            │                                   
-                   └────────────────────┬───────────────────────────┘                                   
-                                        ▼                                                               
-                                Display or Save                                                      
+                              Data                                                              
+                                │                                                               
+                                ▼                                                               
+         ┌─────────────────────────────────────────────────────────┐                            
+         │          Preprocessing                                  │                            
+         │─────────────────────────────────────────────────────────│                            
+         │ --smooth_criminal   Threshold-based value update filter │                            
+         │─────────────────────────────────────────────────────────│                            
+         │ Not yet implemented:                                    │                            
+         │ - Exponential Moving Average [EMA]                      │                            
+         │ - Low-Pass Filters                                      │                            
+         │ - Fourier Transformation                                │                            
+         └─────────────────────────────────────────────────────────┘                            
+                                │                                                               
+                 ┌──────────────┴──────────────────────┐                                        
+                 ▼                                     ▼                                        
+     Dip-Agnostic Track [T-Ag]            Dip-Dependent Track [T-Dip]                           
+                 │                                     ▼                                        
+                 │                        ┌──────────────────────┐                              
+                 │                        │     Detect Dips      │                              
+                 │                        ├──────────────────────┤                              
+                 │                        │ --max-dips           │                              
+                 │                        │ --threshold-dip      │                              
+                 │                        │ --manual-dips        │                              
+                 │                        │ --lin-reg THRESHOLD  │                              
+                 │                        │                      │                              
+                 │                        │ Not yet implemented: │                              
+                 │                        │ --std [x sigma band] │                              
+                 │                        └────────────┬─────────┘                              
+                 ▼                                     ▼                                        
+    ┌──────────────────────────────────┐ ┌───────────────────────────────────────────────────────┐ 
+    │    Calculate Resilience          │ │   Calculate Resilience  (per Dip)                     │ 
+    ├──────────────────────────────────┤ ├───────────────────────────────────────────────────────┤ 
+    │ --auc    AUC devided by length   │ │ --max-dip-auc  AUC per dip                            │ 
+    │          of time frame and       │ │ --bars         Robustness, Recovery,                  │ 
+    │          weighted by kernel      │ │                and Recovery Rate                      │ 
+    │ --count  How many times dropped  │ │ --gr           Integrated Resilience Metric (IRM) (GR)│ 
+    │          below threshold         │ └──────────────────────────┬────────────────────────────┘ 
+    │ --time   How much time spent     │                            ▼                              
+    │          below threshold         │ ┌───────────────────────────────────────────────────────┐ 
+    │ --deriv  Show the 1st and 2nd    │ │         Calculate "Antifragility" /                   │ 
+    │          derivatives             │ │         Resilience over Time                          │ 
+    │                                  │ ├───────────────────────────────────────────────────────┤ 
+    │ Advanced                         │ │ --calc-res-over-time    Calculate the differential    │ 
+    │ --dips                           │ │                         quotient for every resilience │ 
+    │ --drawdowns_traces               │ │                         metric of this track          │ 
+    │ --drawdowns_shapes               │ │                                                       │ 
+    └──────────────┬───────────────────┘ └──────────────────────────┬────────────────────────────┘ 
+                   └────────────────────┬───────────────────────────┘                              
+                                        ▼                                                          
+                                Display or Save                                                    
+                                                                                                                                                  
     """
 
     print("\nPreprocessing influences all subsequent steps. There are two tracks that can be executed independently: "
           "The Dip-Agnostic Track [T-Ag] and the Dip-Dependent Track [T-Dip]. In [T-Ag], resilience metrics do "
           "not depend on dips. In [T-Dip], all metrics are calculated w.r.t. a dip. Therefore, detecting dips "
-          "is mandatory. Then metrics can be calculated, as well as how they change over time ('antifragility').")
+          "is mandatory. Then metrics can be calculated, as well as how they change over time ('antifragility')."
+          "More options are available. See -h.")
     print(workflow)
 
 
@@ -153,7 +155,7 @@ def main():
     mutually_exclusive_group.add_argument('--max_dips', action='store_true', default=True,
                                           help='Detect maximal dips based on local maxima (default)')
     mutually_exclusive_group.add_argument('--threshold-dips', action='store_true',
-                                          help='Detect dips based on threshold')
+                                          help='Detect dips based on threshold (--threshold)')
     mutually_exclusive_group.add_argument('--manual-dips', type=parse_manual_dips,
                                           help='Manually specify dips as a list of tuples of integers, '
                                                'e.g., [(1, 2), (3, 4)].')
@@ -176,13 +178,12 @@ def main():
                                                '(Q(t_ns) / Q(t_0)) (default)')
     recovery_algorithm_group.add_argument('--rec-ab', action='store_true',
                                           help='Recovery ability. Algorithm for calculating recovery. '
-                                               'abs((Q(t_ns) - Q(t_r))/ (Q(t_0) - Q(t_r))) '
+                                               'abs((Q(t_ns) - Q(t_r)) / (Q(t_0) - Q(t_r))) '
                                                'where Q(t_r) is the local minimum within a dip (Robustness).')
 
     basic_group.add_argument('--gr', action='store_true',
                              help='Include the Integrated Resilience Metric '
                                   '(Sansavini, https://doi.org/10.1007/978-94-024-1123-2_6, Chapter 6, formula 6.12)')
-
 
     anti_fragility_group = parser.add_argument_group('[T-Dip] Resilience-Related Metrics over Time Options ('
                                                      '"Anti-Fragility")')
@@ -193,7 +194,7 @@ def main():
     experimental_group = parser.add_argument_group('Experimental Options [To be expanded in the future]')
     experimental_group.add_argument('--deriv', action='store_true',
                                     help='Include derivatives traces. [T-Ag]')
-    experimental_group.add_argument('--lg', action='store_true',
+    experimental_group.add_argument('--lin-reg', action='store_true',
                                     help='Include linear regression traces. [T-Dip]')
 
     fine_group = parser.add_argument_group('[Advanced][T-Ag] Fine-Grained Analysis Trace Options')
@@ -207,10 +208,10 @@ def main():
     settings_group = parser.add_argument_group('[Advanced] Settings')
     # Bayesian Optimization arguments
     settings_group.add_argument('--penalty_factor', type=float, default=0.05,
-                                help='[--lg only] Penalty factor for the number of segments in Bayesian optimization '
+                                help='[--lr only] Penalty factor for the number of segments in Bayesian optimization '
                                      '(default: 0.05).')
     settings_group.add_argument('--dimensions', type=int, default=10,
-                                help='[--lg only] Give the maximal number of segments for lin reg')
+                                help='[--lr only] Give the maximal number of segments for lin reg')
     # AUC-related arguments
     settings_group.add_argument('--weighted_auc_half_life', type=float, default=2,
                                 help='[--auc only] Half-life for weighted AUC calculation (default: 2).')
@@ -245,6 +246,10 @@ def main():
     #           'This sets --rec-ab and changes the algorithm. See -h for more info.')
     #     recovery_algorithm = 'recovery_ability'
 
+    if args.lin_reg:
+        print("This will take some minutes. You can grab a coffee ;) "
+              "Or a beer, depending on the progress of your project.")
+
     # Convert args to a dictionary of keyword arguments
     kwargs = {
         'include_auc': args.auc,
@@ -260,7 +265,7 @@ def main():
         'include_bars': args.bars,
         'include_gr': args.gr,
         'include_derivatives': args.deriv,
-        'include_lin_reg': args.lg,
+        'include_lin_reg': args.lin_reg,
         'penalty_factor': args.penalty_factor,
         'dimensions': args.dimensions,
         'weighted_auc_half_life': args.weighted_auc_half_life,
