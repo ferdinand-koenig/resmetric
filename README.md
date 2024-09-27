@@ -172,7 +172,7 @@ fig = rp.create_plot_from_data(
 # There is a bug with fig.show with which in approx. 10% of the cases the webpage would not load
 # Since some calculation may take long, the following approach is used with which the problem
 # seems to be solved.
-fig.write_html('temp-plot.html', auto_open=True)
+fig.write_html('output.html', auto_open=True)
 
 # Save the updated plot as HTML
 fig.write_html('plot.html')
