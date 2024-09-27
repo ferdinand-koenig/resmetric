@@ -14,4 +14,4 @@ Make sure to update the version in `setup.py` according to semantic versioning (
 
 ```python setup.py clean --all bdist_wheel```
 
-Wheel is built in /dist
+Wheel is built in `/dist`
