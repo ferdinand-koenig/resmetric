@@ -1,6 +1,7 @@
 import argparse
 import sys
 import ast
+import math
 
 from .plot import create_plot_from_data
 
@@ -25,7 +26,10 @@ def plot_from_json_file(json_file, silent=False, save_path=None, **kwargs):
         print(f"Figure saved to {save_path}")
 
     if not silent:
-        fig.show()
+        # There is a bug with fig.show with which in approx. 10% of the cases the webpage would not load
+        # Since some calculation may take long, the following approach is used with which the problem
+        # seems to be solved
+        fig.write_html('temp-plot.html', auto_open=True)
 
 
 def print_workflow():
@@ -36,7 +40,8 @@ def print_workflow():
          ┌─────────────────────────────────────────────────────────┐                            
          │          Preprocessing                                  │                            
          │─────────────────────────────────────────────────────────│                            
-         │ --smooth_criminal   Threshold-based value update filter │                            
+         │ --smooth_criminal   Threshold-based value update filter │
+         | --lin-reg THRSH  Find & use linear reg for steady states|
          │─────────────────────────────────────────────────────────│                            
          │ Not yet implemented:                                    │                            
          │ - Exponential Moving Average [EMA]                      │                            
@@ -53,8 +58,8 @@ def print_workflow():
                  │                        ├──────────────────────┤                              
                  │                        │ --max-dips           │                              
                  │                        │ --threshold-dip      │                              
-                 │                        │ --manual-dips        │                              
-                 │                        │ --lin-reg THRESHOLD  │                              
+                 │                        │ --manual-dips  MAN_D │                              
+                 │                        │ --lin-reg-dips       │                              
                  │                        │                      │                              
                  │                        │ Not yet implemented: │                              
                  │                        │ --std [x sigma band] │                              
@@ -63,7 +68,7 @@ def print_workflow():
     ┌──────────────────────────────────┐ ┌───────────────────────────────────────────────────────┐ 
     │    Calculate Resilience          │ │   Calculate Resilience  (per Dip)                     │ 
     ├──────────────────────────────────┤ ├───────────────────────────────────────────────────────┤ 
-    │ --auc    AUC devided by length   │ │ --max-dip-auc  AUC per dip                            │ 
+    │ --auc    AUC devided by length   │ │ --max-dip-auc  AUC per dip (divided by length)        │ 
     │          of time frame and       │ │ --bars         Robustness, Recovery,                  │ 
     │          weighted by kernel      │ │                and Recovery Rate                      │ 
     │ --count  How many times dropped  │ │ --gr           Integrated Resilience Metric (IRM) (GR)│ 
@@ -77,6 +82,7 @@ def print_workflow():
     │ --dips                           │ │                         quotient for every resilience │ 
     │ --drawdowns_traces               │ │                         metric of this track          │ 
     │ --drawdowns_shapes               │ │                                                       │ 
+    | --lin-reg THRESH (Cf. help page) | |                                                       |
     └──────────────┬───────────────────┘ └──────────────────────────┬────────────────────────────┘ 
                    └────────────────────┬───────────────────────────┘                              
                                         ▼                                                          
@@ -87,7 +93,7 @@ def print_workflow():
     print("\nPreprocessing influences all subsequent steps. There are two tracks that can be executed independently: "
           "The Dip-Agnostic Track [T-Ag] and the Dip-Dependent Track [T-Dip]. In [T-Ag], resilience metrics do "
           "not depend on dips. In [T-Dip], all metrics are calculated w.r.t. a dip. Therefore, detecting dips "
-          "is mandatory. Then metrics can be calculated, as well as how they change over time ('antifragility')."
+          "is mandatory. Then metrics can be calculated, as well as how they change over time ('antifragility'). "
           "More options are available. See -h.")
     print(workflow)
 
@@ -134,31 +140,51 @@ def main():
     preprocessing_group.add_argument('--smooth_criminal', action='store_true',
                                      help='Smooth the series with a threshold-based value update filter '
                                           '(Hee-Hee! Ow!).')
+    preprocessing_group.add_argument('--no-lin-reg-prepro', action='store_true',
+                                     help='Using --lin-reg automatically acts as a preprocessor since it smoothes '
+                                          'the steady states. With this flag, it can be turned it off.')
 
     agnostic_group = parser.add_argument_group('[T-Ag] Core Resilience-Related Trace Options')
     agnostic_group.add_argument('--auc', action='store_true',
                                 help='Include AUC-related traces. '
-                                     '(AUC devided by the length of time frame and different kernels applied)')
+                                     '(AUC devided by the length of time frame and different kernels applied '
+                                     '[Uniform, Exponential decay, and inverse kernel])')
     agnostic_group.add_argument('--count', action='store_true',
                                 help='Include traces that count dips below the threshold.')
     agnostic_group.add_argument('--time', action='store_true',
                                 help='Include traces that accumulate time below the threshold.')
     agnostic_group.add_argument('--threshold', type=float, default=80,
                                 help='Threshold for count and time traces in percent (default: 80).')
+    agnostic_group.add_argument('--deriv', action='store_true',
+                                    help='Include derivatives traces. [T-Ag]')
 
     # Create the [T-Dip] Dip Detection Algorithms argument group
     dip_detect_group = parser.add_argument_group('[T-Dip] Dip Detection Algorithms')
+    dip_detect_group.add_argument(
+        '--lin-reg',
+        nargs='?',  # '?' means the argument can be passed without a value or with a single value
+        const=True,  # This makes --lin-reg default to True if no value is provided
+        default=False,  # By default, it's False if not provided at all
+        help="Include linear regression traces. This is an algorithm that per se is dip-agnostic and therefore part "
+             "of [T-Ag]. However, it can serve as a dip detection algorithm since the steady states before and after a "
+             "disruption can be detected. To enable it, set --lin-reg-dips. "
+             "A threshold can be provided until which steepness segments are "
+             "kept. If only --lin-reg is given, threshold defaults to .5 percent. For analysis purposes, "
+             "all segments can be kept by setting threshold to inf."
+    )
 
     # Create the mutually exclusive group within the dip_detect_group
     mutually_exclusive_group = dip_detect_group.add_mutually_exclusive_group()
 
-    mutually_exclusive_group.add_argument('--max_dips', action='store_true', default=True,
+    mutually_exclusive_group.add_argument('--max_dips', action='store_true',
                                           help='Detect maximal dips based on local maxima (default)')
     mutually_exclusive_group.add_argument('--threshold-dips', action='store_true',
                                           help='Detect dips based on threshold (--threshold)')
     mutually_exclusive_group.add_argument('--manual-dips', type=parse_manual_dips,
                                           help='Manually specify dips as a list of tuples of integers, '
                                                'e.g., [(1, 2), (3, 4)].')
+    mutually_exclusive_group.add_argument('--lin-reg-dips', action='store_true',
+                                          help='Use linear regression segments of --lin-reg to define dips.')
 
     # Group for basic trace options
     basic_group = parser.add_argument_group('[T-Dip] Core Resilience-Related Trace Options')
@@ -190,12 +216,6 @@ def main():
     anti_fragility_group.add_argument('--calc-res-over-time', action='store_true',
                                       help='For every Core Resilience-Related Trace [T-Dip], '
                                            'calculate the differential quotient')
-
-    experimental_group = parser.add_argument_group('Experimental Options [To be expanded in the future]')
-    experimental_group.add_argument('--deriv', action='store_true',
-                                    help='Include derivatives traces. [T-Ag]')
-    experimental_group.add_argument('--lin-reg', action='store_true',
-                                    help='Include linear regression traces. [T-Dip]')
 
     fine_group = parser.add_argument_group('[Advanced][T-Ag] Fine-Grained Analysis Trace Options')
     fine_group.add_argument('--dips', action='store_true', help='Include all detected dips.')
@@ -235,20 +255,36 @@ def main():
 
     # Ensure that json_file is provided if `--workflow` is not used
     if args.json_file is None:
-        print("\nError: The positional argument 'json_file' is required unless using the --workflow flag.\n"
+        print("\nError: The positional argument 'json_file' is required unless using the --workflow flag. "
+              "If you encounter this error due to trying to pass --lin-reg without argument, "
+              "please use the following expression: --lin-reg --\n"
               "See help page '-h'")
         sys.exit(1)
 
-    dip_detect_algorithm = 'manual_dips' if args.manual_dips else 'threshold_dip' if args.threshold_dips else 'max_dips'
+    dip_detect_algorithm = 'manual_dips' if args.manual_dips else 'threshold_dip' if args.threshold_dips \
+        else 'max_dips' if args.max_dips else 'lin_reg_dips' if args.lin_reg_dips else None
     recovery_algorithm = 'recovery_ability' if args.rec_ab else 'adaptive_capacity'
     # if args.gr and not args.rec_ab:
     #     print('\n[Override notice] --gr requires --rec-ab as recovery algorithm.\n'
     #           'This sets --rec-ab and changes the algorithm. See -h for more info.')
     #     recovery_algorithm = 'recovery_ability'
 
-    if args.lin_reg:
+    if args.lin_reg is not False:
+        if isinstance(args.lin_reg, str) and args.lin_reg.lower() == 'inf':
+                args.lin_reg = math.inf
+        elif not (args.lin_reg is True):
+            try:
+                args.lin_reg = float(args.lin_reg)
+            except ValueError:
+                print(f"Invalid threshold value passed to --lin-reg: {args.lin_reg}. See -h")
+                exit(1)
         print("This will take some minutes. You can grab a coffee ;) "
               "Or a beer, depending on the progress of your project.")
+    else:
+        if args.lin_reg_dips:
+            print("If dips based on a linear regression should be used, linear regression must be calculated. "
+                  "Provide the --lin-reg flag (optionally with threshold). See -h for help.")
+            exit(1)
 
     # Convert args to a dictionary of keyword arguments
     kwargs = {
@@ -261,11 +297,11 @@ def main():
         'include_smooth_criminals': args.smooth_criminal,
         'include_dips': args.dips,
         'include_draw_downs_shapes': args.drawdowns_shapes,
-        'include_maximal_dips': args.max_dips,
         'include_bars': args.bars,
         'include_gr': args.gr,
         'include_derivatives': args.deriv,
         'include_lin_reg': args.lin_reg,
+        'no_lin_reg_prepro': args.no_lin_reg_prepro,
         'penalty_factor': args.penalty_factor,
         'dimensions': args.dimensions,
         'weighted_auc_half_life': args.weighted_auc_half_life,
