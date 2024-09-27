@@ -25,8 +25,9 @@ the `metrics` submodule provides functions that can calculate the metrics indivi
 ### From wheel
 Download the wheel (.whl) and
 ```bash
-pip install resmetric-0.1.0-py3-none-any.whl
+pip install resmetric-1.0.0-py3-none-any.whl
 ```
+Make sure to adapt to filename.
 
 Distribution via PyPI might be available at some point. Stay tuned!
 
