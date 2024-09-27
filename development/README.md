@@ -13,3 +13,5 @@ Please follow PEP8 for code style.
 Make sure to update the version in `setup.py` according to semantic versioning (https://semver.org/)
 
 ```python setup.py clean --all bdist_wheel```
+
+Wheel is built in /dist
