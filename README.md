@@ -203,7 +203,7 @@ resmetric-cli --count --time --auc .\example\fig.json
 ![lg.png](/example/lg.png)
 
 ## Comment on execution times
-The calculations for the linear regression (`--lg`) take some minutes.
+The calculations for the linear regression (`--lin-reg`) take some minutes.
 So take a small break or fill up your coffee cup meanwhile :)
 
 ## Assumptions

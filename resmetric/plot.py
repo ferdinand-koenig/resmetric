@@ -255,7 +255,6 @@ def create_plot_from_data(json_str, **kwargs):
                     } for i, slope in enumerate(slopes)]
 
                 filtered_segments = [seg for seg in segments if abs(seg['slope']) < lin_reg_threshold]
-                print(filtered_segments)
 
                 for segment in filtered_segments:
                     start_point = segment['start_point']
@@ -441,6 +440,9 @@ def create_plot_from_data(json_str, **kwargs):
                 max_dips = \
                     [(int(filtered_segments[i]['end_point'][0]), int(filtered_segments[i + 1]['start_point'][0]))
                      for i in range(len(filtered_segments) - 1)]
+                # Accommodate for two segments making one steady state
+                max_dips = [dip for dip in max_dips if dip[0] != dip[1]]
+
 
             # For a dip, get the maximal draw down (1- Robustness) Information and Recovery Information
             # Both infos are used later for adding the bars
