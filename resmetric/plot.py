@@ -639,10 +639,6 @@ def create_plot_from_data(json_str, **kwargs):
                         )
                     )
 
-        if i == 0:
-            # pass
-            break  # TODO Remove
-
     # Include threshold line if requested
     if kwargs.get('include_time_below_thresh') or kwargs.get('include_count_below_thresh'):
         threshold_line.append(go.Scatter(
