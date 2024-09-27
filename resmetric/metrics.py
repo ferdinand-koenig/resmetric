@@ -308,6 +308,67 @@ def _get_dips(values, maxs=None):
     return dips  # Return the list of detected dips
 
 
+def extract_max_dips_based_on_threshold(values, threshold):
+    """
+    Identifies the dips in the `values` array where the values fall below the `threshold`
+    and then rise above it again. A dip is recorded only if it starts above the threshold,
+    falls below, and then returns above the threshold.
+
+    Parameters:
+    values (list or np.ndarray): The array of values to analyze.
+    threshold (float): The threshold below which a dip is identified.
+
+    Returns:
+    list of tuples: A list of (start_index, end_index) tuples, each representing the
+                    start and end indices of a dip.
+
+    Example:
+    >>> values = [9, 12, 15, 8, 5, 11, 14, 7, 20, 4]
+    >>> threshold = 10
+    >>> extract_max_dips_based_on_threshold(values, threshold)
+    [(3, 5), (7, 8)]
+    """
+
+    # Convert values to a NumPy array and create a binary array where values are above the threshold
+    values = np.array(values)
+    below_list = ((values - threshold) > 0).astype(int)
+
+    def _sign_changes_series(series):
+        """
+        Calculates sign changes in the binary series.
+
+        Parameters:
+        series (np.ndarray): The binary series indicating whether values are above (1) or below (0) the threshold.
+
+        Returns:
+        np.ndarray: An array of sign changes where 1 indicates an increase and -1 indicates a decrease.
+        """
+        sign_changes_list = [0]  # No sign change at index 0 possible
+        for i in range(1, len(series)):
+            sign_changes_list.append(series[i] - series[i - 1])
+        return np.array(sign_changes_list)
+
+    # Detect sign changes in the binary series
+    sign_changes = _sign_changes_series(below_list)
+
+    # Find indices where the series changes from above to below the threshold
+    minus_one = np.argwhere(sign_changes == -1).flatten()
+
+    # Find indices where the series changes from below to above the threshold
+    plus_one = np.argwhere(sign_changes == 1).flatten()
+
+    # Align start (minus_one) and end (plus_one) indices
+    if len(minus_one) > 0 and len(plus_one) > 0 and minus_one[0] > plus_one[0]:
+        plus_one = plus_one[1:]
+
+    # Adjust minus_one indices to correct positions
+    minus_one -= 1
+
+    # Pair start and end indices of dips
+    dips = list(zip(minus_one, plus_one))
+
+    return dips
+
 def extract_max_dips_based_on_maxs(entries):
     """
     Extract maximal dips from a list of timestamp tuples (t0, t1).
@@ -425,7 +486,7 @@ def extract_mdd_from_dip(max_dips, values):
     # Iterate over each maximum dip (represented as a tuple of start and end indices)
     for start, end in max_dips:
         # Extract the y-values within the dip range
-        dip_values = np.array(values[start:end+1])
+        dip_values = np.array(values[start:end + 1])
 
         # Detect local minima within the dip by inverting the values
         minima_indices = detect_peaks(-dip_values)
@@ -476,25 +537,49 @@ def smoother(values, threshold=2):
     return out
 
 
-def get_recovery(y_values, max_dips):
+def get_recovery(y_values, max_dips, algorithm='adaptive_capacity'):
     """
-    Calculate the recovery metrics based on the maximum dips.
+    Calculate recovery metrics based on the maximum dips using the specified algorithm.
 
     Parameters:
     - y_values (list or array): The y-values for the data points.
-    - max_dips (list of tuples): List of tuples representing the dips (start_index, end_index).
+    - max_dips (list of tuples): List of tuples representing the dips with (start_index, end_index).
+    - algorithm (str): The recovery algorithm to use. Can be:
+      - 'adaptive_capacity' (default): Ratio of new steady state to prior steady state value (Q(t_ns) / Q(t_0)).
+      - 'recovery_ability': Relative recovery as
+        ((Q(t_ns) - Q(t_r)) / (Q(t_0) - Q(t_r))), where Q(t_r)
+        is the local minimum within the dip.
 
     Returns:
     - dict: Dictionary where keys are end indices of the dips and values are dictionaries containing:
-      - 'relative_recovery': The relative recovery difference.
-      - 'absolute_recovery': The absolute recovery difference.
-      - 'line': A tuple representing a vertical line for visualization.
+      - 'relative_recovery': The relative recovery metric.
+      - 'absolute_recovery': The absolute recovery metric.
+      - 'line': A tuple representing a vertical line for visualization (e.g., (x_value, y_min, y_max)).
+
+    Raises:
+    - ValueError: If `algorithm` is not one of the valid options ('adaptive_capacity' or 'recovery_ability').
+    - ValueError: If any dip tuple has invalid indices (b >= e, b < 0, or e >= len(y_values)).
     """
+    # Validate the algorithm parameter
+    valid_algorithms = ['adaptive_capacity', 'recovery_ability']
+    if algorithm not in valid_algorithms:
+        raise ValueError(f"Invalid algorithm '{algorithm}'. Choose one of {valid_algorithms}.")
+
     recovery = {}  # key: position
     # value: dict(recovery= value, line=((),()))
     for b, e in max_dips:
-        relative_recovery_difference = y_values[e] / y_values[b]  # degree of resilience # degree is not intuitive!
-        # also not intuitive since pos and neg.
+        if b >= e or b < 0 or e >= len(y_values):
+            raise ValueError(f"Invalid dip indices: ({b}, {e})")
+
+        if algorithm == 'adaptive_capacity':
+            # Adaptive Capacity: Q(t_ns) / Q(t_0)
+            relative_recovery_difference = y_values[e] / y_values[b]  # degree of resilience # degree is not intuitive!
+            # also not intuitive since pos and neg.
+        elif algorithm == 'recovery_ability':
+            # Recovery Ability: (Q(t_ns) - Q(t_r)) / (Q(t_0) - Q(t_r))
+            local_min = min(y_values[b:e + 1])
+            relative_recovery_difference = abs((y_values[e] - local_min) / (y_values[b] - local_min))
+
         absolute_recovery_difference = y_values[b] - y_values[e]  # resilience error, also not intuitive since pos and
 
         recovery[e] = dict(relative_recovery=relative_recovery_difference,
@@ -645,3 +730,204 @@ def resilience_over_time(dips_resilience):
 
     return results
 
+
+def get_max_dip_auc(y_values, max_dips):
+    """
+    Calculate the Area Under Curve (AUC) for each dip defined in `max_dips`.
+
+    This function computes the AUC for segments of the `y_values` array corresponding to each dip range specified in `max_dips`.
+    It uses the `calculate_kernel_auc` function to obtain the AUC value for each segment.
+
+    Parameters:
+    - y_values (list or array-like): A list or array of numerical values representing the data points.
+    - max_dips (list of tuples): A list of tuples, where each tuple contains two elements (start_index, end_index)
+      defining the range of the dip. Each range specifies the segment of `y_values` to calculate the AUC for.
+
+    Returns:
+    - dict: A dictionary where each key is a tuple representing a dip (start, end), and the value is the AUC
+      of that segment. The AUC is calculated using the `calculate_kernel_auc` function applied to the segment.
+
+    Example:
+    >>> y_values = [10, 20, 30, 25, 30, 28, 20, 18, 22, 25, 30, 35, 40, 38, 36, 30, 25, 22, 20, 18]
+    >>> max_dips = [(5, 10), (15, 20)]
+    >>> result = get_max_dip_auc(y_values, max_dips)
+    >>> print(result)
+    {
+        (5, 10): 10.5,  # Example AUC values (not accurate)
+        (15, 20): 9.2
+    }
+    """
+    # Dictionary to store the AUC for each dip
+    max_dip_auc_info = {}
+
+    # Iterate over each dip defined by its start and end indices
+    for dip in max_dips:
+        # Extract the segment of y_values corresponding to the current dip
+        segment = y_values[dip[0]:dip[1] + 1]
+        # Calculate the AUC for the segment and store it in the dictionary
+        max_dip_auc_info[dip] = calculate_kernel_auc(segment)[-1]
+
+    return max_dip_auc_info
+
+
+def get_max_dip_integrated_resilience_metric(y_values, max_dips):
+    """
+    Calculate the Integrated Resilience Metric (GR) for each dip defined in `max_dips`.
+    (cf. Sansavini, https://doi.org/10.1007/978-94-024-1123-2_6, Chapter 6, formula 6.12).
+
+    This function computes the GR for segments of the `y_values` array corresponding
+    to each dip range specified in `max_dips`.
+
+    Parameters
+    ----------
+    y_values : list or array-like
+        A list or array of numerical values representing the data points.
+    max_dips : list of tuples
+        A list of tuples, where each tuple contains two elements (t_d, t_ns)
+        defining the range of the dip. Each range specifies the segment of `y_values` to calculate the GR for.
+
+    Returns
+    -------
+    dict
+        A dictionary where each key is a tuple representing a dip (t_d, t_ns), and the value is the GR
+        of that segment.
+
+    Example
+    -------
+    >>> y_values = [10, 20, 30, 25, 30, 28, 20, 18, 22, 25, 30, 35, 40, 38, 36, 30, 25, 22, 20, 18]
+    >>> max_dips = [(5, 10), (15, 20)]
+    >>> result = get_max_dip_integrated_resilience_metric(y_values, max_dips)
+    >>> print(result)
+    {
+        (5, 10): 8.3,  # Example GR values (not accurate)
+        (15, 20): 7.1
+    }
+    """
+    gr_info = {}
+
+    for dip in max_dips:
+        t_d, t_ns = dip
+        segment = y_values[t_d:t_ns + 1]
+
+        # Extract the relevant values
+        Q_t_d = segment[0]  # Value at the start of the dip (Q_{t_d})
+        Q_t_r = min(segment)  # Robustness: Minimum value within the dip (Q_{t_r})
+        Q_t_ns = segment[-1]  # Value at the end of the dip (Q_{t_ns})
+
+        # Find the index of the minimum value within the dip segment
+        min_index = segment.index(Q_t_r)
+        t_r = t_d + min_index  # The index where the minimum occurs
+
+        # Assert that t_r is not equal to t_d to avoid division by zero in RAPI_DP calculation
+        assert t_r != t_d, "t_r must not be equal to t_d. Check your dip detection algorithm."
+
+        # Assert that t_ns is not equal to t_r to avoid division by zero in RAPI_RP calculation
+        assert t_ns != t_r, "t_ns must not be equal to t_r. Check your dip detection algorithm."
+
+        # Assert that Q_t_d - Q_t_r is not zero to avoid division by zero in RA calculation
+        assert (Q_t_d - Q_t_r) != 0, "Q_t_d - Q_t_r must not be zero. Check your dip detection algorithm."
+
+        # Calculate RAPI
+        RAPI_DP = (Q_t_d - Q_t_r) / (t_r - t_d)  # Rate of performance decline
+        RAPI_RP = (Q_t_ns - Q_t_r) / (t_ns - t_r)  # Rate of performance recovery
+
+        # Time-Averaged Performance Loss (TAPL)
+        TAPL = calculate_kernel_auc(segment)[-1]
+
+        # Recovery Ability (RA)
+        RA = get_recovery(segment, [(0, len(segment) - 1)],
+                          algorithm='recovery_ability')[len(segment) - 1]['relative_recovery']
+
+        # Calculate GR
+        GR = Q_t_r * (RAPI_RP / RAPI_DP) * (TAPL ** -1) * RA
+
+        gr_info[dip] = GR
+
+    return gr_info
+
+
+def mdd_to_robustness(mdd: float) -> float:
+    """
+    Convert Maximum Drawdown (MDD) to Robustness metric.
+
+    The robustness metric provides a measure of system stability by quantifying
+    how resilient a system is to losses represented by the Maximum Drawdown.
+
+    Parameters:
+        mdd (float):
+            The Maximum Drawdown value, representing the largest percentage drop
+            from a peak to a trough. Expected to be a value between 0 and 1,
+            where 0 indicates no drawdown and 1 indicates a 100% loss.
+
+    Returns:
+        float:
+            The robustness metric calculated as (1 - mdd). The result ranges between
+            0 and 1, where a value closer to 1 indicates higher robustness.
+
+    Raises:
+        ValueError:
+            If the input `mdd` is not between 0 and 1.
+
+    Examples:
+        >>> mdd_to_robustness(0.2)
+        0.8
+
+        >>> mdd_to_robustness(0.0)
+        1.0
+
+        >>> mdd_to_robustness(1.0)
+        0.0
+
+    """
+    if not 0 <= mdd <= 1:
+        raise ValueError("mdd must be between 0 and 1 inclusive.")
+    return 1 - mdd
+
+
+def dip_to_recovery_rate(dip: tuple) -> float:
+    """
+    Calculate the inverse of the recovery time from a dip event.
+
+    The recovery rate is defined as the inverse of the time it takes to recover
+    from a dip, which is calculated as the difference between the end time (t1)
+    and the start time (t0). A higher recovery rate indicates a quicker recovery.
+
+    Parameters:
+        dip (tuple):
+            A tuple containing two time points (t0, t1), where t0 is the time
+            when the dip starts and t1 is the time when recovery occurs. Both
+            t0 and t1 should be numeric values, and t1 must be greater than t0.
+
+    Returns:
+        float:
+            The recovery rate, calculated as 1 / (t1 - t0). The result is a
+            positive number, where a larger value indicates a faster recovery.
+
+    Raises:
+        ValueError:
+            If t1 is not greater than t0, or if the tuple does not contain exactly
+            two elements.
+
+    Examples:
+        >>> dip_to_recovery_rate((2, 5))
+        0.3333333333333333
+
+        >>> dip_to_recovery_rate((0, 10))
+        0.1
+
+        >>> dip_to_recovery_rate((5, 5))
+        ValueError: t1 must be greater than t0.
+
+    """
+    # Ensure the tuple contains exactly two elements
+    if len(dip) != 2:
+        raise ValueError("dip must be a tuple with exactly two elements (t0, t1).")
+
+    t0, t1 = dip
+
+    # Ensure that t1 is greater than t0
+    if t1 <= t0:
+        raise ValueError("t1 must be greater than t0.")
+
+    # Calculate the recovery rate
+    return 1 / (t1 - t0)

@@ -1,0 +1,4 @@
+# Dont track changes of your development scripts by default
+build-run.bat
+build-dev.bat
+

@@ -1,8 +1,10 @@
-import time
+from datetime import datetime
+import warnings
 import plotly.graph_objects as go
 import plotly.io as pio
 import numpy as np
 import pwlf
+import copy
 from .metrics import (
     detect_peaks,
     _get_dips,
@@ -18,8 +20,25 @@ from .metrics import (
     _perform_bayesian_optimization,
     _make_color_pale_hex,
     resilience_over_time,
-    get_max_dip_auc
+    get_max_dip_auc,
+    mdd_to_robustness,
+    dip_to_recovery_rate,
+    get_max_dip_integrated_resilience_metric,
+    extract_max_dips_based_on_threshold
 )
+
+# Global variable to control printing
+verbose = True
+
+def set_verbose(enabled):
+    """Enable or disable verbose output."""
+    global verbose
+    verbose = enabled
+
+def vprint(*args, **kwargs):
+    """Print only if verbose is enabled."""
+    if verbose:
+        print(*args, **kwargs)
 
 
 def create_plot_from_data(json_str, **kwargs):
@@ -35,42 +54,73 @@ def create_plot_from_data(json_str, **kwargs):
         Optional keyword arguments to include or exclude specific traces and
         analyses:
 
-        - include_auc (bool): Include AUC-related traces. (AUC devided by the length of the time frame and
+        - include_smooth_criminals (bool): Preprocess the series and smooth with a threshold-based update filter.
+          (Hee-Hee! Ow!)
+
+        - include_auc (bool): Include AUC-related traces. (AUC divided by the length of the time frame and
           different kernels applied)
-        - include_max_dip_auc (bool): Include AUC bars for the AUC of one maximal dip
-          (AUC devided by the length of the time frame)
         - include_count_below_thresh (bool): Include traces counting dips below
           the threshold.
         - include_time_below_thresh (bool): Include traces accumulating time
           below the threshold.
         - threshold (float): Threshold for count and time traces (default is 80).
+        - include_dips (bool): Include detected dips.
+        - include_draw_downs_shapes (bool): Include shapes of local draw-downs.
         - include_draw_downs_traces (bool): Include traces representing the
           relative loss at each point in the time series, calculated as the
           difference between the current value and the highest value reached
           up to that point, divided by that highest value.
-        - include_smooth_criminals (bool): Include smoothed series.
-          (Hee-Hee! Ow!)
-        - include_dips (bool): Include detected dips.
-        - include_draw_downs_shapes (bool): Include shapes of local draw-downs.
-        - include_maximal_dips (bool): Include maximal dips, maximal draw-downs,
-          and recoveries.
-        - include_bars (bool): Include bars for robustness, recovery and recovery time.
         - include_derivatives (bool): Include derivatives traces.
-        - include_lin_reg (bool): Include linear regression traces.
+
+        - dip_detection_algorithm (str): Specifies the dip detection algorithm to use.
+          It can be 'max_dips' (default), 'threshold_dips', 'manual_dips', 'lin_reg_dips' (the last requires
+          include_lin_reg).
+        - manual_dips (list of tuples or None): If 'manual_dips' is selected as the dip detection algorithm,
+          this should be a list of tuples specifying the manual dips.
+        - include_lin_reg (bool or float): Include linear regression traces. Optionally float for threshold of slope.
+          Slopes above the absolute value are discarded. Defaults to 0.5% (for value set to True).
+          It is possible to pass math.inf. See also `no_lin_reg_prepro`
+        - no_lin_reg_prepro (bool): include_lin_reg automatically preprocesses and updates the series. If you do
+          not wish this, set this flag to True
+
+        - include_max_dip_auc (bool): Include AUC bars for the AUC of one maximal dip
+          (AUC devided by the length of the time frame)
+        - include_bars (bool): Include bars for robustness, recovery and recovery time.
+        - include_gr (bool): Include the Integrated Resilience Metric
+          (cf. Sansavini, https://doi.org/10.1007/978-94-024-1123-2_6, Chapter 6, formula 6.12).
+          Requires kwarg recovery_algorithm='recovery_ability'.
+        - recovery_algorithm (str or None): Decides the recovery algorithm. Can either be 'adaptive_capacity' (default)
+          or 'recovery_ability'. The first one is the ratio of new to prior steady state's value (Q(t_ns) / Q(t_0)).
+          The last one is abs((Q(t_ns) - Q(t_r))/ (Q(t_0) - Q(t_r)))
+          where Q(t_r) is the local minimum within a dip (Robustness).
+
+        - calc_res_over_time (bool): Calculate the differential quotient for every per-dip Resilience-Related Trace.
+
         - penalty_factor (float): Penalty factor for Bayesian Optimization
           (default is 0.05).
         - dimensions (int): Dimensions for Bayesian Optimization (default is 10)
           (Max. N. of segments for lin. reg.).
         - weighted_auc_half_life (float): Half-life for weighted AUC calculation
           (default is 2).
-        - smoother_threshold (int): Threshold for smoother function
-          (default is 2).
+        - smoother_threshold (int): Threshold for smoother function in percent
+          (default is 2[%]).
 
     Returns
     -------
     fig : plotly.graph_objs._figure.Figure
         Plotly Figure object with the specified traces and analyses included.
     """
+    # Set default dip detection algorithm to 'max_dips'
+    dip_detection_algorithm = kwargs.get('dip_detection_algorithm', None)
+    recovery_algorithm = kwargs.get('recovery_algorithm', 'adaptive_capacity')
+
+    # # Validate the include_gr parameter
+    # if kwargs.get('include_gr') and recovery_algorithm != 'recovery_ability':
+    #     raise ValueError(
+    #         "The 'include_gr' option requires the 'recovery_algorithm' to be set to 'recovery_ability'. "
+    #         "Please set 'recovery_algorithm' to 'recovery_ability' to include the Integrated Resilience Metric."
+    #     )
+
     # Convert JSON string to Plotly figure
     fig = pio.from_json(json_str)
 
@@ -89,7 +139,8 @@ def create_plot_from_data(json_str, **kwargs):
     derivative_traces = []
     lin_reg_traces = []
     antifrag_diff_qu_traces = []
-    max_dip_auc_bars =[]
+    max_dip_auc_bars = []
+    gr_bars = []
 
     # Retrieve optional arguments with defaults
     threshold = kwargs.get('threshold', 80)
@@ -103,6 +154,12 @@ def create_plot_from_data(json_str, **kwargs):
     global_x_max = float('-inf')
 
     for i, s in enumerate(series):
+        s.update(
+            mode='lines+markers',
+            marker=dict(color=_make_color_pale_hex(fig.layout.template.layout.colorway[i])),
+            line=dict(color=_make_color_pale_hex(fig.layout.template.layout.colorway[i]))
+        )
+
         y_values = s.y
         x_values = s.x if s.x is not None else np.arange(len(y_values))  # Assuming x-values are indices
 
@@ -122,6 +179,107 @@ def create_plot_from_data(json_str, **kwargs):
                 marker=dict(color=fig.layout.template.layout.colorway[i]),
                 legendgroup=f'Smoothed {s.name}'
             ))
+
+        # [T-Dip] Fit the piecewise linear model and add to traces if requested
+        if kwargs.get('include_lin_reg', False) is not False:
+            lin_reg_threshold = .5e-2 if kwargs['include_lin_reg'] is True else abs(kwargs['include_lin_reg'])
+            vprint(f'Using threshold {lin_reg_threshold}')
+            # Suppress only UserWarnings temporarily
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", category=UserWarning)
+
+                # Perform Bayesian Optimization to find the optimal number of segments
+                vprint(f"[{datetime.now().strftime('%H:%M:%S')}] Calculating linear regression"
+                      f" of series {i + 1} of {len(series)}")
+                optimal_segments = _perform_bayesian_optimization(x_values, y_values,
+                                                                  penalty_factor=penalty_factor,
+                                                                  dimensions=dimensions)
+                pwlf_model = pwlf.PiecewiseLinFit(x_values, y_values)
+                pwlf_model.fit(optimal_segments)
+
+                # Using the breakpoints provided by the package turned out to be a fool's errand.
+                # The problem is:
+                #   - a linear regression sometimes until t and the next one starts at t + 1
+                #     (generating a gap of [t, t+1])
+                #   - this, however is not a rule so these gaps might not be generated
+                #   - also, a segment might be of size 2 (exactly two points)
+                # With the provided breakpoints, it is not trivial to derive the start and endpoint of a segment
+                # Solution: Use the model's function to map the points onto the segments (predict)
+                # Then calculate the slopes directly from there (diff. quotient)
+                # The indices where the slope changes is your breakpoint
+                # Notice: Due to this behavior, the actual number of segments might be larger than `optimal_segments`
+
+                # Extract breakpoints and slopes
+                # slopes = pwlf_model.calc_slopes()
+                # breakpoints = pwlf_model.fit_breaks
+
+                # for j in range(len(breakpoints)):
+                #     try:
+                #         next_bigger = round(breakpoints[j + 1])
+                #     except:
+                #         next_bigger = -1
+                #     this = round(breakpoints[j])
+                #     breakpoints[j] = this if not next_bigger == this else this - 1
+
+                # Extract start and end points of each segment
+                # segments = []
+                # for j in range(len(breakpoints) - 1):
+                #     start_x = breakpoints[j] + 1 if breakpoints[j] != 0 else 0
+                #     end_x = breakpoints[j + 1]
+                #     start_y = pwlf_model.predict(start_x)[0]
+                #     end_y = pwlf_model.predict(end_x)[0]
+                #     # start_y = y_hat[start_x]
+                #     # end_y = y_hat[end_x]
+                #     slope = slopes[j]
+                #     segments.append({
+                #         'start_point': (start_x, start_y),
+                #         'end_point': (end_x, end_y),
+                #         'slope': slope
+                #     })
+
+                pwlf_y = pwlf_model.predict(x_values)
+                # differential quotient
+                diff_q = [float(pwlf_y[i + 1]) - float(pwlf_y[i]) for i in range(len(pwlf_y) - 1)]
+                diff_q = [round(num, 6) for num in diff_q]  # numerical float issues ==> solved by rounding to 6 digits
+
+                # Indices of true breakpoints
+                indices = [i for i in range(1, len(diff_q)) if diff_q[i] != diff_q[i - 1]]
+                indices.insert(0, 0)
+                slopes = [diff_q[index] for index in indices]
+                indices.append(len(x_values)-1)
+
+                segments = [{
+                        'start_point': (indices[i], pwlf_y[indices[i]]),
+                        'end_point': (indices[i+1], pwlf_y[indices[i+1]]),
+                        'slope': slope
+                    } for i, slope in enumerate(slopes)]
+
+                filtered_segments = [seg for seg in segments if abs(seg['slope']) < lin_reg_threshold]
+
+                for segment in filtered_segments:
+                    start_point = segment['start_point']
+                    end_point = segment['end_point']
+                    lin_reg_traces.append(
+                        go.Scatter(
+                            x=[start_point[0], end_point[0]],
+                            y=[start_point[1], end_point[1]],
+                            mode='lines',
+                            line=dict(color=fig.layout.template.layout.colorway[i]),
+                            name=f'PWLF ({optimal_segments} Segments) - {s.name}',
+                            # name=f'PWLF (x Segments) - {s.name}',
+                            legendgroup=f'PWLF ({optimal_segments} ({len(slopes)}) Segments) - {s.name}'
+                        )
+                    )
+
+            if not kwargs.get('no_lin_reg_prepro'):
+                # copy old series
+                lin_reg_traces.append(copy.deepcopy(s))
+                s.update(
+                    name=s.name + ' (prepro - lin reg)'
+                )
+                # update (smooth) the current
+                y_values = pwlf_y
+                s.y = y_values
 
         ################################################
         # [T-Ag] Handle all the agnostic features
@@ -258,189 +416,232 @@ def create_plot_from_data(json_str, **kwargs):
                 yaxis='y3'
             ))
 
-        ################################################
-        # [T-Dip] Dip Detection
-        # MaxDips Detection (Detects with the help of peaks)
-        max_dips = extract_max_dips_based_on_maxs(dips)
-        # TODO add threshold dip
-        # TODO based on user input / labels
+            ################################################
 
-        # For a dip, get the maximal draw down (1- Robustness) Information and Recovery Information
-        # Both infos are used later for adding the bars
-        mdd_info = extract_mdd_from_dip(max_dips, y_values)
-        recovery_info = get_recovery(y_values, max_dips)
-        max_dip_auc_info = get_max_dip_auc(y_values, max_dips)
+        if (kwargs.get('include_bars') or kwargs.get('include_dip_auc') or kwargs.get('include_gr')
+                or dip_detection_algorithm):
+            if not dip_detection_algorithm:
+                dip_detection_algorithm = 'max_dips'
+            # [T-Dip] Dip Detection
+            # MaxDips Detection (Detects with the help of peaks)
+            if dip_detection_algorithm == 'max_dips':
+                max_dips = extract_max_dips_based_on_maxs(dips)
+            elif dip_detection_algorithm == 'threshold_dips':
+                max_dips = extract_max_dips_based_on_threshold(y_values, threshold)
+            elif dip_detection_algorithm == 'manual_dips':
+                max_dips = kwargs.get('manual_dips')
+                if not max_dips:
+                    raise ValueError('No dips provided: manual_dips must hold values. See help or doc string')
+            elif dip_detection_algorithm == 'lin_reg_dips':
+                if kwargs.get('include_lin_reg', False) is False:
+                    raise ValueError(f'To use {dip_detection_algorithm}, please enable include_lin_reg=True or'
+                                     f'include_lin_reg=<float> to provide a threshold for the slopes.'
+                                     f'See the documentation for more information (such as this function\'s docstring)')
+                max_dips = \
+                    [(int(filtered_segments[i]['end_point'][0]), int(filtered_segments[i + 1]['start_point'][0]))
+                     for i in range(len(filtered_segments) - 1)]
+                # Accommodate for two segments making one steady state
+                max_dips = [dip for dip in max_dips if dip[0] != dip[1]]
 
-        # Draw the detected dips
-        for max_dip, info in mdd_info.items():
-            # Draw Recovery Time Line
-            maximal_dips_shapes.append(
-                go.Scatter(
-                    x=[max_dip[0], max_dip[1]],
-                    y=[y_values[max_dip[0]], y_values[max_dip[0]]],
-                    mode='lines',
-                    line=dict(dash='dot', color=fig.layout.template.layout.colorway[i]),
-                    name=f'Max Dips - {s.name}',
-                    legendgroup=f'Max Dips - {s.name}'
-                )
-            )
-            maximal_dips_shapes.append(
-                go.Scatter(
-                    x=[max_dip[1]],
-                    y=[y_values[max_dip[0]]],
-                    mode='markers',
-                    marker=dict(symbol='x', color=fig.layout.template.layout.colorway[i]),
-                    name=f'Max Dips - {s.name}',
-                    legendgroup=f'Max Dips - {s.name}'
-                )
-            )
-            # Draw Maximal Drawdown
-            maximal_dips_shapes.append(
-                go.Scatter(
-                    x=[info['line'][0][0], info['line'][1][0]],
-                    y=[info['line'][0][1], info['line'][1][1]],
-                    mode='lines',
-                    line=dict(color=fig.layout.template.layout.colorway[i], width=2, dash='dash'),
-                    name=f'Max Drawdown {s.name}',
-                    legendgroup=f'Max Dips - {s.name}'
-                )
-            )
 
-            if kwargs.get('include_max_dip_auc'):
-                # And make bars for the AUC of each dip
-                max_dip_auc_bars.append(
-                    go.Bar(
-                        x=[max_dip[1]],
-                        y=[max_dip_auc_info[max_dip]],
-                        width=1,
-                        marker=dict(color=fig.layout.template.layout.colorway[i]),
-                        opacity=0.25,
-                        name=f'Max Dip {max_dip} (Local) AUC - {s.name}',
-                        legendgroup=f'Max Dip (Local) AUC - {s.name}',
-                    )
-                )
+            # For a dip, get the maximal draw down (1- Robustness) Information and Recovery Information
+            # Both infos are used later for adding the bars
+            mdd_info = extract_mdd_from_dip(max_dips, y_values)
+            recovery_info = get_recovery(y_values, max_dips, algorithm=recovery_algorithm)
+            max_dip_auc_info = get_max_dip_auc(y_values, max_dips)
 
-        for _, recovery in recovery_info.items():
-            maximal_dips_shapes.append(
-                go.Scatter(
-                    x=[recovery['line'][0][0], recovery['line'][1][0]],
-                    y=[recovery['line'][0][1], recovery['line'][1][1]],
-                    mode='lines',
-                    line=dict(dash='dot', color=fig.layout.template.layout.colorway[i]),
-                    name=f'Recovery Line {s.name}',
-                    legendgroup=f'Max Dips - {s.name}',
-                )
-            )
-
-        # [Experimental] [T-Dip] Fit the piecewise linear model and add to traces if requested
-        if kwargs.get('include_lin_reg'):
-            # Perform Bayesian Optimization to find the optimal number of segments
-            optimal_segments = _perform_bayesian_optimization(x_values, y_values,
-                                                              penalty_factor=penalty_factor, dimensions=dimensions)
-            pwlf_model = pwlf.PiecewiseLinFit(x_values, y_values)
-            pwlf_model.fit(optimal_segments)
-            y_hat = pwlf_model.predict(x_values)
-            lin_reg_traces.append(
-                go.Scatter(
-                    x=x_values,
-                    y=y_hat,
-                    mode='lines',
-                    line=dict(color=fig.layout.template.layout.colorway[i]),
-                    name=f'PWLF ({optimal_segments} Segments) - {s.name}',
-                    legendgroup=f'PWLF - {s.name}'
-                )
-            )
-
-        ###############################
-        # [T-Dip] Core Resilience
-        if kwargs.get('include_bars'):
+            # Draw the detected dips
             for max_dip, info in mdd_info.items():
-                maximal_dips_bars.append(
-                    go.Bar(
-                        x=[info['line'][0][0]],
-                        y=[1 - info['value']],
-                        width=1,
-                        marker=dict(color=fig.layout.template.layout.colorway[i]),
-                        opacity=0.25,
-                        name=f'Robustness - {s.name}',
-                        legendgroup=f'Robustness + rel. Rec Bars - {s.name}',
-                    )
-                )
-            for _, recovery in recovery_info.items():
-                maximal_dips_bars.append(
-                    go.Bar(
-                        x=[recovery['line'][0][0]],
-                        y=[recovery['relative_recovery']],
-                        width=1,
-                        marker=dict(color=fig.layout.template.layout.colorway[i]),
-                        opacity=0.25,
-                        name=f'Rel. Recovery - {s.name}',
-                        legendgroup=f'Robustness + rel. Rec Bars - {s.name}',
-                    )
-                )
-
-        ##############################
-        # [T-Dip] "antiFragility"
-        # mdd_info = extract_mdd_from_dip(max_dips, y_values) # Robustness
-        #  recovery_info = get_recovery(y_values, max_dips)
-        # AUC
-        # length
-        if (kwargs.get('calc_res_over_time') and
-                (kwargs.get('include_bars') or kwargs.get('include_dip_auc'))):
-            # Construct input
-            dips_resilience = {d: {} for d in max_dips}
-            if kwargs.get('include_bars'):
-                assert set(dips_resilience.keys()) == set(mdd_info.keys()), "Keys do no match"
-                for dip, mdd in mdd_info.items():
-                    dips_resilience[dip]['robustness'] = 1 - mdd['value']  # TODO add robustness as bars
-                    dips_resilience[dip]['recovery'] = recovery_info[dip[1]]['relative_recovery']
-                    dips_resilience[dip]['(recovery time)^-1'] = 1/(dip[1] - dip[0])  # TODO add recovery time as bars
-
-            if kwargs.get('include_max_dip_auc'):
-                assert set(dips_resilience.keys()) == set(max_dip_auc_info.keys()), "Keys do no match"
-                for dip, auc in max_dip_auc_info.items():
-                    dips_resilience[dip]['auc'] = auc
-
-            # take output and draw the traces
-            for metric, metric_change in resilience_over_time(dips_resilience).items():
-                antifrag_diff_qu_traces.append(
+                # Draw Recovery Time Line
+                maximal_dips_shapes.append(
                     go.Scatter(
-                        x=[end for end, _ in metric_change.get('diff_q')],
-                        y=[quotient for _, quotient in metric_change.get('diff_q')],
-                        mode='lines+markers',
-                        line=dict(color=fig.layout.template.layout.colorway[i],
-                                  dash='dot'),
-                        marker=dict(
-                            symbol='cross',
-                            size=8,
-                            color='black'
-                        ),
-                        name=f'Diff. quot. of {metric} - {s.name}',
-                        hovertext=f'Diff. quot. of {metric} - <br>{s.name}',
-                        legendgroup=f'Antifragility - {s.name}',
-                        yaxis='y5' if metric != '(recovery time)^-1' else 'y5'
-                    )
-                )
-                antifrag_diff_qu_traces.append(
-                    go.Scatter(
-                        x=[global_x_min, global_x_max],  # Extend the line across the global x-axis range
-                        y=[metric_change.get('overall'), metric_change.get('overall')],
+                        x=[max_dip[0], max_dip[1]],
+                        y=[y_values[max_dip[0]], y_values[max_dip[0]]],
                         mode='lines',
-                        name=f'Mean Diff. quot. of {metric} - {s.name}',
-                        hovertext=f'Mean Diff. quot. of {metric} - <br>{s.name}',
-                        legendgroup=f'Antifragility - {s.name}',
-                        line=dict(dash='dash', color='black'),
-                        yaxis='y5' if metric != '(recovery time)^-1' else 'y5',
-                        hoverinfo='x+y+text',  # Show x, y, and hover text
+                        line=dict(dash='dot', color=fig.layout.template.layout.colorway[i]),
+                        name=f'Max Dips - {s.name}',
+                        legendgroup=f'Max Dips - {s.name}'
+                    )
+                )
+                maximal_dips_shapes.append(
+                    go.Scatter(
+                        x=[max_dip[1]],
+                        y=[y_values[max_dip[0]]],
+                        mode='markers',
+                        marker=dict(symbol='x', color=fig.layout.template.layout.colorway[i]),
+                        name=f'Max Dips - {s.name}',
+                        legendgroup=f'Max Dips - {s.name}'
+                    )
+                )
+                # Draw Maximal Drawdown
+                maximal_dips_shapes.append(
+                    go.Scatter(
+                        x=[info['line'][0][0], info['line'][1][0]],
+                        y=[info['line'][0][1], info['line'][1][1]],
+                        mode='lines',
+                        line=dict(color=fig.layout.template.layout.colorway[i], width=2, dash='dash'),
+                        name=f'Max Drawdown {s.name}',
+                        legendgroup=f'Max Dips - {s.name}'
                     )
                 )
 
-        # Update the original series with a pale color
-        s.update(
-            mode='lines+markers',
-            marker=dict(color=_make_color_pale_hex(fig.layout.template.layout.colorway[i])),
-            line=dict(color=_make_color_pale_hex(fig.layout.template.layout.colorway[i]))
-        )
+                if kwargs.get('include_max_dip_auc'):
+                    # And make bars for the AUC of each dip
+                    max_dip_auc_bars.append(
+                        go.Bar(
+                            x=[max_dip[1]],
+                            y=[max_dip_auc_info[max_dip]],
+                            width=1,
+                            marker=dict(color=fig.layout.template.layout.colorway[i]),
+                            opacity=0.25,
+                            name=f'(Local) AUC for dip {max_dip} - {s.name}',
+                            hovertext=f'(Local) AUC for dip {max_dip} - {s.name}',
+                            hoverinfo='x+y+text',  # Show x, y, and hover text
+                            legendgroup=f'[T-Dip] (Local) AUC per dip - {s.name}',
+                        )
+                    )
+
+            for _, recovery in recovery_info.items():
+                maximal_dips_shapes.append(
+                    go.Scatter(
+                        x=[recovery['line'][0][0], recovery['line'][1][0]],
+                        y=[recovery['line'][0][1], recovery['line'][1][1]],
+                        mode='lines',
+                        line=dict(dash='dot', color=fig.layout.template.layout.colorway[i]),
+                        name=f'Recovery Line {s.name}',
+                        legendgroup=f'Max Dips - {s.name}',
+                    )
+                )
+
+            ###############################
+            # [T-Dip] Core Resilience
+            if kwargs.get('include_bars'):
+                assert set(max_dips) == set(mdd_info.keys()), "Keys (Dips) do no match"
+                for max_dip, info in mdd_info.items():
+                    maximal_dips_bars.append(
+                        go.Bar(
+                            x=[info['line'][0][0]],
+                            y=[mdd_to_robustness(info['value'])],
+                            width=1,
+                            marker=dict(color=fig.layout.template.layout.colorway[i]),
+                            opacity=0.25,
+                            name=f'Robustness - {s.name}',
+                            hovertext=f'Robustness - {s.name}',
+                            hoverinfo='x+y+text',  # Show x, y, and hover text
+                            legendgroup=f'[T-Dip] Resilience - {s.name}',
+                        )
+                    )
+                    maximal_dips_bars.append(
+                        go.Bar(
+                            x=[max_dip[1]],
+                            y=[dip_to_recovery_rate(max_dip)],
+                            width=1,
+                            marker=dict(color=fig.layout.template.layout.colorway[i]),
+                            opacity=0.25,
+                            name=f'Recovery Rate - {s.name}',
+                            hovertext=f'Recovery Rate - {s.name}',
+                            hoverinfo='x+y+text',  # Show x, y, and hover text
+                            legendgroup=f'[T-Dip] Resilience - {s.name}',
+                        )
+                    )
+                for _, recovery in recovery_info.items():
+                    maximal_dips_bars.append(
+                        go.Bar(
+                            x=[recovery['line'][0][0]],
+                            y=[recovery['relative_recovery']],
+                            width=1,
+                            marker=dict(color=fig.layout.template.layout.colorway[i]),
+                            opacity=0.25,
+                            name=f'Rel. Recovery - {s.name}',
+                            hovertext=f'Rel. Recovery - {s.name}',
+                            hoverinfo='x+y+text',  # Show x, y, and hover text
+                            legendgroup=f'[T-Dip] Resilience - {s.name}',
+                        )
+                    )
+            ###############
+            # [T-Dip] Integrated Resilience Metric (IRM) GR
+            if kwargs.get('include_gr'):
+                gr = get_max_dip_integrated_resilience_metric(y_values, max_dips)
+                assert set(max_dips) == set(gr.keys()), "Keys (Dips) do no match"
+                for dip, gr_value in gr.items():
+                    gr_bars.append(
+                        go.Bar(
+                            x=[dip[1]],
+                            y=[gr_value],
+                            width=1,
+                            marker=dict(color=fig.layout.template.layout.colorway[i]),
+                            opacity=0.25,
+                            name=f'IRM GR - {s.name}',
+                            hovertext=f'IRM GR {max_dip} - {s.name}',
+                            hoverinfo='x+y+text',  # Show x, y, and hover text
+                            legendgroup=f'[T-Dip] IRM GR - {s.name}',
+                            yaxis='y6'
+                        )
+                    )
+
+            ##############################
+            # [T-Dip] "antiFragility"
+            # mdd_info = extract_mdd_from_dip(max_dips, y_values) # Robustness
+            #  recovery_info = get_recovery(y_values, max_dips)
+            # AUC
+            # length
+            if kwargs.get('calc_res_over_time'):
+                # Construct input
+                dips_resilience = {d: {} for d in max_dips}
+                if kwargs.get('include_bars'):
+                    assert set(dips_resilience.keys()) == set(mdd_info.keys()), "Keys (Dips) do no match"
+                    for dip, mdd in mdd_info.items():
+                        dips_resilience[dip]['robustness'] = mdd_to_robustness(mdd['value'])
+                        dips_resilience[dip]['recovery'] = recovery_info[dip[1]]['relative_recovery']
+                        dips_resilience[dip]['recovery rate'] = dip_to_recovery_rate(dip)
+
+                if kwargs.get('include_max_dip_auc'):
+                    assert set(dips_resilience.keys()) == set(max_dip_auc_info.keys()), "Keys (Dips) do no match"
+                    for dip, auc in max_dip_auc_info.items():
+                        dips_resilience[dip]['auc'] = auc
+
+                if kwargs.get('include_gr'):
+                    for dip, gr_value in gr.items():
+                        dips_resilience[dip]['IRM GR'] = gr_value
+
+                # take output and draw the traces
+                for metric, metric_change in resilience_over_time(dips_resilience).items():
+                    antifrag_diff_qu_traces.append(
+                        go.Scatter(
+                            x=[end for end, _ in metric_change.get('diff_q')],
+                            y=[quotient for _, quotient in metric_change.get('diff_q')],
+                            mode='lines+markers',
+                            line=dict(color=fig.layout.template.layout.colorway[i],
+                                      dash='dot'),
+                            marker=dict(
+                                symbol='cross',
+                                size=8,
+                                color='black'
+                            ),
+                            name=f'Diff. quot. of {metric} - {s.name}',
+                            hovertext=f'Diff. quot. of {metric} - <br>{s.name}',
+                            legendgroup=f'"Antifragility" - {s.name}',
+                            hoverinfo='x+y+text',  # Show x, y, and hover text
+                            yaxis='y5'
+                        )
+                    )
+                    antifrag_diff_qu_traces.append(
+                        go.Scatter(
+                            x=[global_x_min, global_x_max],  # Extend the line across the global x-axis range
+                            y=[metric_change.get('overall'), metric_change.get('overall')],
+                            mode='lines',
+                            name=f'Mean Diff. quot. of {metric} - {s.name}',
+                            hovertext=f'Mean Diff. quot. of {metric} - <br>{s.name}',
+                            legendgroup=f'"Antifragility" - {s.name}',
+                            line=dict(dash='dash', color='black'),
+                            yaxis='y5',
+                            hoverinfo='x+y+text',  # Show x, y, and hover text
+                        )
+                    )
+
+        if i == 0:
+            # pass
+            break  # TODO Remove
 
     # Include threshold line if requested
     if kwargs.get('include_time_below_thresh') or kwargs.get('include_count_below_thresh'):
@@ -473,8 +674,16 @@ def create_plot_from_data(json_str, **kwargs):
             side='right',
             autoshift=True
         ),
-        yaxis5 = dict(
+        yaxis5=dict(
             title='Differential Quotient "Antifragility"',
+            overlaying='y',
+            anchor='free',
+            side='right',
+            autoshift=True,
+            zeroline=True
+        ),
+        yaxis6=dict(
+            title='Integrated Resilience Metric (IRM) GR',
             overlaying='y',
             anchor='free',
             side='right',
@@ -501,7 +710,7 @@ def create_plot_from_data(json_str, **kwargs):
         all_traces += dips_horizontal_shapes
     if kwargs.get('include_draw_downs_shapes'):
         all_traces += draw_down_shapes
-    if kwargs.get('include_maximal_dips'):
+    if dip_detection_algorithm:  # may be set automatically therefore not via kwarg
         all_traces += maximal_dips_shapes
     if kwargs.get('include_bars'):
         all_traces += maximal_dips_bars
@@ -509,10 +718,12 @@ def create_plot_from_data(json_str, **kwargs):
         all_traces += derivative_traces
     if kwargs.get('include_lin_reg'):
         all_traces += lin_reg_traces
-    if kwargs.get('calc_res_over_time'):
-        all_traces += antifrag_diff_qu_traces
     if kwargs.get('include_max_dip_auc'):
         all_traces += max_dip_auc_bars
+    if kwargs.get('include_gr'):
+        all_traces += gr_bars
+    if kwargs.get('calc_res_over_time'):
+        all_traces += antifrag_diff_qu_traces
 
     # Update the figure with new data and layout
     fig = go.Figure(data=all_traces, layout=fig.layout)
