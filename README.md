@@ -183,7 +183,7 @@ print("Figure saved as 'plot.html'")
 
 ### Use as CLI tool
 #### Example 1 - AUC, count and time below threshold
-AUC gives tree traces per trace in the original plot: The weighted moving average,
+AUC gives three traces per trace in the original plot: The weighted moving average,
 weighted 1) uniformly 2) with an exponential decay and 3) with an inverse distance weighting.
 With the latter two, more recent points contribute more to the average AUC at a given time.
 ```bash
