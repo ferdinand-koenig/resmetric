@@ -199,7 +199,7 @@ resmetric-cli --count --time --auc .\example\fig.json
 
 #### Example 3 - Linear Regression with auto segmentation
 ```bash
- resmetric-cli --lin-reg .\example\fig.json
+ resmetric-cli --lin-reg -- .\example\fig.json
 ```
 ![lg.png](/example/lg.png)
 
