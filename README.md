@@ -23,7 +23,8 @@ the `metrics` submodule provides functions that can calculate the metrics indivi
 
 ## Installation
 ### From wheel
-Download the wheel (.whl) and
+Download the latest wheel (.whl) from the [releases section](https://github.com/ferdinand-koenig/resmetric/releases) and
+follow the installation command from there. This looks similar to:
 ```bash
 pip install resmetric-1.0.0-py3-none-any.whl
 ```
@@ -31,9 +32,15 @@ Make sure to adapt to filename.
 
 Distribution via PyPI might be available at some point. Stay tuned!
 
-### From source
-Go to the home directory and install via
+**Having trouble installing? See the installation note in the appendix of this README.**
 
+### From source
+Download the source or clone the repository via
+```bash
+git clone https://github.com/ferdinand-koenig/resmetric.git
+cd resmetric
+```
+and install
 ```bash
 pip install .
 ```
@@ -182,24 +189,27 @@ print("Figure saved as 'plot.html'")
 ```
 
 ### Use as CLI tool
+*Note: The wheel (`.whl`) does not include example material. Either, download or install it from the source.*
+Check out our [GitHub Repository](https://github.com/ferdinand-koenig/resmetric)
+
 #### Example 1 - AUC, count and time below threshold
 AUC gives three traces per trace in the original plot: The weighted moving average,
 weighted 1) uniformly 2) with an exponential decay and 3) with an inverse distance weighting.
 With the latter two, more recent points contribute more to the average AUC at a given time.
 ```bash
-resmetric-cli --count --time --auc .\example\fig.json
+resmetric-cli --count --time --auc ./example/fig.json
 ```
 ![count-time-auc.png](/example/count-time-auc.png)
 
 #### Example 2 - Maximal dips with Maximal draw-downs and recoveries
 ```bash
- resmetric-cli --max_dips --bars .\example\fig.json
+ resmetric-cli --max_dips --bars ./example/fig.json
 ```
 ![max_dips-bars.png](/example/max_dips-bars.png)
 
 #### Example 3 - Linear Regression with auto segmentation
 ```bash
- resmetric-cli --lin-reg -- .\example\fig.json
+ resmetric-cli --lin-reg -- ./example/fig.json
 ```
 ![lg.png](/example/lg.png)
 
@@ -232,3 +242,57 @@ Currently, all rights reserved. If interested, please contact me!
 ferdinand (-at-) koenix.de
 
 In the future, there might be a dual license approach: Commercial might require license fees, Non-commercial might be quite open
+
+
+## Appendix
+### Note: Installation on Ubuntu 23.04+, Debian 12+, and Similar OSs (`error: externally-managed-environment`)
+
+Starting with Ubuntu 23.04, Debian 12, and similar systems, some operating systems have implemented
+[PEP 668](https://peps.python.org/pep-0668/) to help protect system-managed Python packages from being overwritten or
+broken by `pip`-installed packages. This means that attempting to install Python packages globally
+outside of a virtual environment can lead to errors such as `error: externally-managed-environment`.
+
+**This is not a bug** with the `resmetric` package but rather expected behavior enforced by the operating system to keep
+system packages stable. Generally, to install Python packages without issues, you must use a virtual environment.
+
+If you encounter the installation error mentioning PEP 668 or `error: externally-managed-environment`, follow one of the strategies below:
+
+#### Option 1: Use `pipx`
+1. **Install and setup `pipx`**
+   ```bash
+   sudo apt-get install -y pipx
+   pipx ensurepath
+    ```
+2. **Install package via `pipx`**
+   Replace `pip` by `pipx` in the installation command. This may look like
+   ```bash
+   pipx install resmetric-1.0.0-py3-none-any.whl
+   ```
+   Make sure to use the right filename for the wheel file.
+3. **You are all set up!** Make sure to be in the same directory when running the CLI
+
+
+#### Option 2: Use a Virtual Environment
+
+1. **Create a virtual environment:**
+   ```bash
+   python3 -m venv .venv
+    ```
+2. **If the above command fails** due to missing packages, install the venv module:
+    ```bash
+    sudo apt install python3-venv
+    ```
+3. **Activate the virtual environment**
+    ```bash
+    source .venv/bin/activate
+    ```
+4. **Re-attempt the package installation**
+5. **When you are done** using the package, deactivate the virtual environment
+    ```bash
+    deactivate
+    ```
+
+Every time, when you want to use `resmetric`, make sure to navigate to the installation directory and run step 3.
+After use, finish with step 5.
+
+
