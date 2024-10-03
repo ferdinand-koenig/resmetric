@@ -269,7 +269,7 @@ If you encounter the installation error mentioning PEP 668 or `error: externally
    pipx install resmetric-1.0.0-py3-none-any.whl
    ```
    Make sure to use the right filename for the wheel file.
-3. **You are all set up!** Make sure to be in the same directory when running the CLI
+3. **You are all set up!**
 
 
 #### Option 2: Use a Virtual Environment
