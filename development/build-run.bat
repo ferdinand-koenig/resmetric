@@ -4,4 +4,4 @@ pip uninstall -y resmetric
 pip install .
 @REM resmetric-cli --max_dips --bars --max-dip-auc --calc-res-over-time ".\example\fig.json"
 @REM resmetric-cli --gr --calc-res-over-time ".\example\fig.json"
-resmetric-cli --lin-reg ".\example\fig.json"
+resmetric-cli --lin-reg -- ".\example\fig.json"
