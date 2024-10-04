@@ -57,7 +57,7 @@ def print_workflow():
                  │                        │     Detect Dips      │                              
                  │                        ├──────────────────────┤                              
                  │                        │ --max-dips           │                              
-                 │                        │ --threshold-dip      │                              
+                 │                        │ --threshold-dips     │                              
                  │                        │ --manual-dips  MAN_D │                              
                  │                        │ --lin-reg-dips       │                              
                  │                        │                      │                              
