@@ -190,7 +190,15 @@ print("Figure saved as 'plot.html'")
 
 ### Use as CLI tool
 *Note: The wheel (`.whl`) does not include example material. Either, download or install it from the source.*
-Check out our [GitHub Repository](https://github.com/ferdinand-koenig/resmetric)
+Check out our [GitHub Repository](https://github.com/ferdinand-koenig/resmetric).
+
+To illustrate the tool's capabilities with relevant data, we utilized the classification accuracy graph presented by Gheibi and Weyns[^1]. Although the graph is not included in their paper, it reflects the same reported results and can be accessed through the accompanying replication package[^2]. We added a fourth curve by incorporating the classification performance of an ensemble learner, complementing the three existing performance curves. Their study proposes a self-adaptive, lifelong machine learning model, demonstrating its effectiveness in classifying gas in a pipeline[^3][^4].
+
+[^1]: [Omid Gheibi and Danny Weyns. 2022. Lifelong Self-Adaptation: Self-Adaptation Meets Lifelong Machine Learning. In 17th International Symposium on Software Engineering for Adaptive and Self-Managing Systems (SEAMS ’22), May 18–23, 2022, PITTSBURGH, PA, USA. ACM, New York, NY, USA, 12 pages](https://doi.org/10.1145/3524844.3528052)
+[^2]: [Replication package for Gas Delivery Case](https://people.cs.kuleuven.be/~danny.weyns/software/LLSAS/) Accessed: 2024-05-07
+[^3]: [Vergara, A., Vembu, S., Ayhan, T., Ryan, M. A., Homer, M. L., and Huerta, R. Chemical gas sensor drift compensation using classifier ensembles. Sensors and Actuators B: Chemical 166-167 (2012), 320–329.](https://doi.org/10.1016/j.snb.2012.01.074)
+[^4]: [Data: Gas Sensor Array Drift at Different Concentrations](https://doi.org/10.24432/C5MK6M)
+
 
 #### Example 1 - AUC, count and time below threshold
 AUC gives three traces per trace in the original plot: The weighted moving average,
