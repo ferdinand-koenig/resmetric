@@ -565,7 +565,6 @@ def create_plot_from_data(json_str, **kwargs):
                 gr = get_max_dip_integrated_resilience_metric(y_values, max_dips)
                 assert set(max_dips) == set(gr.keys()), "Keys (Dips) do no match"
                 for dip, gr_value in gr.items():
-                    gr_value = 0
                     gr_bars.append(
                         go.Bar(
                             x=[dip[1]],
