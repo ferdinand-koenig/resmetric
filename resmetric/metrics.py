@@ -369,6 +369,7 @@ def extract_max_dips_based_on_threshold(values, threshold):
 
     return dips
 
+
 def extract_max_dips_based_on_maxs(entries):
     """
     Extract maximal dips from a list of timestamp tuples (t0, t1).
@@ -773,7 +774,8 @@ def get_max_dip_auc(y_values, max_dips):
 def get_max_dip_integrated_resilience_metric(y_values, max_dips):
     """
     Calculate the Integrated Resilience Metric (GR) for each dip defined in `max_dips`.
-    (cf. Sansavini, https://doi.org/10.1007/978-94-024-1123-2_6, Chapter 6, formula 6.12).
+    (cf. Sansavini, https://doi.org/10.1007/978-94-024-1123-2_6, Chapter 6, formula 6.12,
+    formula fixed to ((TAPL +1) ** -1)) cf. artefact publication)
 
     This function computes the GR for segments of the `y_values` array corresponding
     to each dip range specified in `max_dips`.
@@ -815,31 +817,32 @@ def get_max_dip_integrated_resilience_metric(y_values, max_dips):
         Q_t_ns = segment[-1]  # Value at the end of the dip (Q_{t_ns})
 
         # Find the index of the minimum value within the dip segment
-        min_index = segment.index(Q_t_r)
+        min_index = np.argmin(segment) if isinstance(segment, np.ndarray) else segment.index(Q_t_r)
         t_r = t_d + min_index  # The index where the minimum occurs
 
         # Assert that t_r is not equal to t_d to avoid division by zero in RAPI_DP calculation
         assert t_r != t_d, "t_r must not be equal to t_d. Check your dip detection algorithm."
-
-        # Assert that t_ns is not equal to t_r to avoid division by zero in RAPI_RP calculation
-        assert t_ns != t_r, "t_ns must not be equal to t_r. Check your dip detection algorithm."
 
         # Assert that Q_t_d - Q_t_r is not zero to avoid division by zero in RA calculation
         assert (Q_t_d - Q_t_r) != 0, "Q_t_d - Q_t_r must not be zero. Check your dip detection algorithm."
 
         # Calculate RAPI
         RAPI_DP = (Q_t_d - Q_t_r) / (t_r - t_d)  # Rate of performance decline
-        RAPI_RP = (Q_t_ns - Q_t_r) / (t_ns - t_r)  # Rate of performance recovery
+        RAPI_RP = (Q_t_ns - Q_t_r) / (t_ns - t_r) if t_ns != t_r else 0  # Rate of performance recovery
 
         # Time-Averaged Performance Loss (TAPL)
-        TAPL = calculate_kernel_auc(segment)[-1]
+        TAPL = calculate_kernel_auc([Q_t_d - value for value in segment])[-1]
 
         # Recovery Ability (RA)
         RA = get_recovery(segment, [(0, len(segment) - 1)],
                           algorithm='recovery_ability')[len(segment) - 1]['relative_recovery']
 
         # Calculate GR
-        GR = Q_t_r * (RAPI_RP / RAPI_DP) * (TAPL ** -1) * RA
+        # Variant by Sansavini (Does not consider cases where TAPL < 0 (fatal)
+        # GR = Q_t_r * (RAPI_RP / RAPI_DP) * (TAPL ** -1) * RA
+
+        # Fixed version
+        GR = Q_t_r * (RAPI_RP / RAPI_DP) * ((TAPL + 1) ** -1) * RA
 
         gr_info[dip] = GR
 

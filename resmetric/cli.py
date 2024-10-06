@@ -209,7 +209,8 @@ def main():
 
     basic_group.add_argument('--gr', action='store_true',
                              help='Include the Integrated Resilience Metric '
-                                  '(Sansavini, https://doi.org/10.1007/978-94-024-1123-2_6, Chapter 6, formula 6.12)')
+                                  '(Sansavini, https://doi.org/10.1007/978-94-024-1123-2_6, Chapter 6, formula 6.12, '
+                                  'formula fixed to ((TAPL +1) ** -1)) cf. artefact publication))')
 
     anti_fragility_group = parser.add_argument_group('[T-Dip] Resilience-Related Metrics over Time Options ('
                                                      '"Anti-Fragility")')
