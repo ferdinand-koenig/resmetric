@@ -21,29 +21,68 @@ the `metrics` submodule provides functions that can calculate the metrics indivi
 - **Use as Module or CLI**: Include the module in one of your projects or use the CLI to interact with the module!
 - **Display or Save**: Display the plot in your browser or save it as an HTML file.
 
-## Installation
-### From wheel
-Download the latest wheel (.whl) from the [releases section](https://github.com/ferdinand-koenig/resmetric/releases) and
-follow the installation command from there. This looks similar to:
-```bash
-pip install resmetric-1.0.0-py3-none-any.whl
-```
-Make sure to adapt to filename.
+## Installation and Setup
+The following guide is for beginners. If you are not a beginner, feel free to skip the installation instructions!
 
-Distribution via PyPI might be available at some point. Stay tuned!
+If you need the wheel file, you can find it in the [releases section](https://github.com/ferdinand-koenig/resmetric/releases).
 
-**Having trouble installing? See the installation note in the appendix of this README.**
+Having trouble installing it? Please check the installation note in the [appendix](##Appendix) of this README.
 
-### From source
-Download the source or clone the repository via
-```bash
-git clone https://github.com/ferdinand-koenig/resmetric.git
-cd resmetric
-```
-and install
-```bash
-pip install .
-```
+### Step-by-Step Installation and Setup
+Go to a folder where you want to place the installation and download the wheel (`.whl` file)
+
+0. **Get Python** (Only if you do not have Python `>= 3.8`)
+   
+   You should download and install Python from [download](https://www.python.org/downloads/). Go for the latest version, but everything `>= 3.8` will be fine.
+   A guide for installation and version check can be found [here](https://realpython.com/installing-python/).
+   
+1. **Install the package**
+   Create a virtual environment and install the package in it:
+    - **Linux or MacOS:**
+        ```bash
+        python3 -m venv .venv
+        source .venv/bin/activate
+        python3 -m pip install --upgrade pip
+        python3 -m pip install resmetric-1.0.0-py3-none-any.whl
+        ```
+    - **Windows:**
+        ```cmd
+        py -m venv .venv
+        .venv\Scripts\activate
+        py -m pip install --upgrade pip
+        py -m pip install resmetric-1.0.0-py3-none-any.whl
+        ```
+2. **Use the package**
+   If you continue right after step 1, you can use the tool and jump right in.
+   If you have installed the package previously, you have to source your shell again:
+
+   - For Linux or MacOS:
+     ```bash
+     source .venv/bin/activate
+     ```
+
+   - For Windows:
+     ```cmd
+     .venv\Scripts\activate
+     ```
+     
+   Now, explore the tool on your own! You can try using the [CLI](##CLI-Interface), the [module in Python](##Module-Usage),
+   or check out our [CLI Examples](##Use-as-CLI-tool) to see demonstrations and replicate them.
+
+   
+3. **After Use**
+   To deactivate the virtual environment, run
+   ```bash
+   deactivate
+   ```
+4. **Uninstall**
+   If you have created the virtual environment only for this project (as you did if you followed this little guide),
+   just delete the `.venv` directory. That's it!
+   ```bash
+   rm -r .venv
+   ```
+   You could also uninstall Python if you no longer need it.
+
 
 ## Getting started
 Familiarize yourself with the workflow. It will help to understand how the dip-agnostic track and dip-dependent track
@@ -189,8 +228,10 @@ print("Figure saved as 'plot.html'")
 ```
 
 ### Use as CLI tool
-*Note: The wheel (`.whl`) does not include example material. Either, download or install it from the source.*
-Check out our [GitHub Repository](https://github.com/ferdinand-koenig/resmetric).
+*Note: The wheel (`.whl`) does not include example material.*
+
+To get started, you can download the example data `fig.json` [here](https://github.com/ferdinand-koenig/resmetric/blob/main/example/fig.json). 
+Please place the downloaded file in a subdirectory called `example` to use the examples as provided.
 
 To illustrate the tool's capabilities with relevant data, we utilized the classification accuracy graph presented by Gheibi and Weyns[^1]. Although the graph is not included in their paper, it reflects the same reported results and can be accessed through the accompanying replication package[^2]. We added a fourth curve by incorporating the classification performance of an ensemble learner, complementing the three existing performance curves. Their study proposes a self-adaptive, lifelong machine learning model, demonstrating its effectiveness in classifying gas in a pipeline[^3][^4].
 
@@ -222,7 +263,7 @@ resmetric-cli --count --time --auc ./example/fig.json
 ![lg.png](/example/lg.png)
 
 ## Comment on execution times
-The calculations for the linear regression (`--lin-reg`) take some minutes.
+The calculations for the linear regression (`--lin-reg --`) take some minutes.
 So take a small break or fill up your coffee cup meanwhile :)
 
 ## Assumptions
@@ -265,7 +306,10 @@ system packages stable. Generally, to install Python packages without issues, yo
 
 If you encounter the installation error mentioning PEP 668 or `error: externally-managed-environment`, follow one of the strategies below:
 
-#### Option 1: Use `pipx`
+#### Option 1: Use the [step-by-step installation guide](###Step-by-Step-Installation-and-Setup)
+Use the [step-by-step installation guide](###Step-by-Step-Installation-and-Setup). The virtual environment fixes this issue.
+
+#### Option 2: Use `pipx`
 1. **Install and setup `pipx`**
    ```bash
    sudo apt-get install -y pipx
@@ -278,29 +322,5 @@ If you encounter the installation error mentioning PEP 668 or `error: externally
    ```
    Make sure to use the right filename for the wheel file.
 3. **You are all set up!**
-
-
-#### Option 2: Use a Virtual Environment
-
-1. **Create a virtual environment:**
-   ```bash
-   python3 -m venv .venv
-    ```
-2. **If the above command fails** due to missing packages, install the venv module:
-    ```bash
-    sudo apt install python3-venv
-    ```
-3. **Activate the virtual environment**
-    ```bash
-    source .venv/bin/activate
-    ```
-4. **Re-attempt the package installation**
-5. **When you are done** using the package, deactivate the virtual environment
-    ```bash
-    deactivate
-    ```
-
-Every time, when you want to use `resmetric`, make sure to navigate to the installation directory and run step 3.
-After use, finish with step 5.
 
 
