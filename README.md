@@ -14,9 +14,9 @@ different resilience metrics can be explored. In addition,
 the `metrics` submodule provides functions that can calculate the metrics individually!
 
 ## Key Features
-- **Seperation of Dip-Agnostic ([T-Ag]) and Dip-Dependent Metrics ([T-Dip])**: Analyze your performance graph w.r.t. resilience and 'antifragility' (See *Getting Started* Section)
-- **Dip-Agnostic Metrics** do not depend on where a disruption starts and the system is fully recovered. (AUC, count and time below threshold, etc)
-- **Dip-Dependent Metrics** need the definition / detection where a disruption starts and when it is recovered. (AUC per dip, robustness, recovery, recovery rate, Intergrated Resilience Metric)
+- **Separation of Dip-Agnostic ([T-Ag]) and Dip-Dependent Metrics ([T-Dip])**: Analyze your performance graph w.r.t. resilience and 'antifragility' (See *Getting Started* Section)
+- **Dip-Agnostic Metrics** do not depend on where a disruption starts and the system is fully recovered. (AUC, count and time below a threshold, etc)
+- **Dip-Dependent Metrics** need the definition/detection of where a disruption starts and when it is recovered. (AUC per dip, robustness, recovery, recovery rate, Integrated Resilience Metric)
 - **Customizable Metrics**: Adjust parameters for AUC calculations, smoothing functions, and use Bayesian optimization to fit linear regressions to detect steady states and therefore dips. (Advanced)
 - **Use as Module or CLI**: Include the module in one of your projects or use the CLI to interact with the module!
 - **Display or Save**: Display the plot in your browser or save it as an HTML file.
@@ -66,8 +66,8 @@ Go to a folder where you want to place the installation and download the wheel (
      .venv\Scripts\activate
      ```
      
-   Now, explore the tool on your own! You can try using the [CLI](##CLI-Interface), the [module in Python](##Module-Usage),
-   or check out our [CLI Examples](##Use-as-CLI-tool) to see demonstrations and replicate them.
+   Now, explore the tool on your own! You can try using the [CLI](#cli-interface), the [module in Python](#module-usage),
+   or check out our [CLI Examples](#use-as-cli-tool) to see demonstrations and replicate them.
 
    
 3. **After Use**
