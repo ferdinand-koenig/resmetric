@@ -26,7 +26,7 @@ The following guide is for beginners. If you are not a beginner, feel free to sk
 
 If you need the wheel file, you can find it in the [releases section](https://github.com/ferdinand-koenig/resmetric/releases).
 
-Having trouble installing it? Please check the installation note in the [appendix](##Appendix) of this README.
+Having trouble installing it? Please check the installation note in the [appendix](#appendix) of this README.
 
 ### Step-by-Step Installation and Setup
 Go to a folder where you want to place the installation and download the wheel (`.whl` file)
@@ -306,8 +306,8 @@ system packages stable. Generally, to install Python packages without issues, yo
 
 If you encounter the installation error mentioning PEP 668 or `error: externally-managed-environment`, follow one of the strategies below:
 
-#### Option 1: Use the [step-by-step installation guide](###Step-by-Step-Installation-and-Setup)
-Use the [step-by-step installation guide](###Step-by-Step-Installation-and-Setup). The virtual environment fixes this issue.
+#### Option 1: Use the [step-by-step installation guide](#step-by-step-installation-and-setup)
+The virtual environment fixes this issue.
 
 #### Option 2: Use `pipx`
 1. **Install and setup `pipx`**
