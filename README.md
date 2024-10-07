@@ -43,7 +43,7 @@ Go to a folder where you want to place the installation and download the wheel (
         python3 -m venv .venv
         source .venv/bin/activate
         python3 -m pip install --upgrade pip
-        python3 -m pip install resmetric-1.0.0-py3-none-any.whl
+        python3 -m pip install resmetric-*.whl
         ```
     - **Windows:**
         ```cmd
@@ -52,6 +52,8 @@ Go to a folder where you want to place the installation and download the wheel (
         py -m pip install --upgrade pip
         py -m pip install resmetric-1.0.0-py3-none-any.whl
         ```
+        Please ensure you use the correct filename in the last command (e.g., `resmetric-1.0.0-py3-none-any.whl`).
+
 2. **Use the package**
    If you continue right after step 1, you can use the tool and jump right in.
    If you have installed the package previously, you have to source your shell again:
