@@ -7,7 +7,7 @@ on:
     branches: [ "main" ]
 
 jobs:
-  ubuntu:
+  ubuntu-python:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -45,7 +45,7 @@ jobs:
         resmetric-cli --max_dips --bars ./example/fig.json
         # Scenario 3 takes too long => pray and hope the code works
 
-  macos:
+  macos-python-3_9:
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v4
@@ -79,7 +79,7 @@ jobs:
         resmetric-cli --max_dips --bars ./example/fig.json
         # Scenario 3 takes too long => pray and hope the code works
 
-  windows:
+  windows-python-3_9:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v4
@@ -94,7 +94,9 @@ jobs:
         python setup.py clean --all bdist_wheel
     - name: Install from wheel
       run: |
-        pip install dist\*.whl  # Using backslash for Windows compatibility
+        cd dist
+        pip install *.whl  # Using backslash for Windows compatibility
+        cd ..
     - name: Lint with flake8
       run: |
         pip install flake8
