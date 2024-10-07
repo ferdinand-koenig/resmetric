@@ -26,7 +26,7 @@ jobs:
         python setup.py clean --all bdist_wheel
     - name: Install from wheel
       run: |
-        pip install dist/*.whl
+        pip install dist/resmetric-*.whl
     - name: Lint with flake8
       run: |
         pip install flake8
@@ -60,7 +60,7 @@ jobs:
         python setup.py clean --all bdist_wheel
     - name: Install from wheel
       run: |
-        pip install dist/*.whl
+        pip install dist/resmetric-*.whl
     - name: Lint with flake8
       run: |
         pip install flake8
@@ -94,7 +94,8 @@ jobs:
         python setup.py clean --all bdist_wheel
     - name: Install from wheel
       run: |
-        cd dist && pip install *.whl  # Change to dist and install the wheel files
+        for %i in (dist\resmetric-*.whl) do pip install "%i"
+      shell: cmd
     - name: Lint with flake8
       run: |
         pip install flake8
