@@ -94,7 +94,7 @@ jobs:
         python setup.py clean --all bdist_wheel
     - name: Install from wheel
       run: |
-        for %i in (dist\resmetric-*.whl) do pip install "%i"
+        for %%i in (dist\resmetric-*.whl) do pip install "%%i"
       shell: cmd
     - name: Lint with flake8
       run: |
