@@ -94,9 +94,7 @@ jobs:
         python setup.py clean --all bdist_wheel
     - name: Install from wheel
       run: |
-        cd dist
-        pip install *.whl  # Using backslash for Windows compatibility
-        cd ..
+        cd dist && pip install *.whl  # Change to dist and install the wheel files
     - name: Lint with flake8
       run: |
         pip install flake8
