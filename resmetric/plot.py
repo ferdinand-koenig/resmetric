@@ -757,9 +757,9 @@ def create_plot_from_data(json_str, **kwargs):
             trace.update(showlegend=False)
             if legend_group not in legend_groups_seen:
                 # Extract color based on trace type
-                if hasattr(trace, 'line') and hasattr(trace.line, 'color'):
+                if hasattr(trace, 'line') and hasattr(trace.line, 'color') and trace.line.color is not None:
                     color = trace.line.color
-                elif hasattr(trace, 'marker') and hasattr(trace.marker, 'color'):
+                elif hasattr(trace, 'marker') and hasattr(trace.marker, 'color') and trace.marker.color is not None:
                     color = trace.marker.color
                 elif hasattr(trace, 'fillcolor'):
                     color = trace.fillcolor
@@ -771,11 +771,11 @@ def create_plot_from_data(json_str, **kwargs):
                     x=[None],  # Dummy data
                     y=[None],  # Dummy data
                     mode='markers',
-                    marker=dict(size=0),  # Make it invisible
                     showlegend=True,
                     name=legend_group,  # Use the legend group name
                     legendgroup=legend_group,
-                    line=dict(color=color) if color else None  # Preserve line color if applicable
+                    line=dict(color=color) if color else None,  # Preserve color if available
+                    marker=dict(color=color, size=7) if color else dict(size=7)
                 )
                 # Add the dummy trace to the figure
                 fig.add_trace(dummy_trace)
