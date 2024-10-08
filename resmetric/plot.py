@@ -87,7 +87,8 @@ def create_plot_from_data(json_str, **kwargs):
           (AUC devided by the length of the time frame)
         - include_bars (bool): Include bars for robustness, recovery and recovery time.
         - include_gr (bool): Include the Integrated Resilience Metric
-          (cf. Sansavini, https://doi.org/10.1007/978-94-024-1123-2_6, Chapter 6, formula 6.12).
+          (cf. Sansavini, https://doi.org/10.1007/978-94-024-1123-2_6, Chapter 6, formula 6.12
+          formula fixed to ((TAPL +1) ** -1)) cf. artefact publication)
           Requires kwarg recovery_algorithm='recovery_ability'.
         - recovery_algorithm (str or None): Decides the recovery algorithm. Can either be 'adaptive_capacity' (default)
           or 'recovery_ability'. The first one is the ratio of new to prior steady state's value (Q(t_ns) / Q(t_0)).
@@ -569,13 +570,31 @@ def create_plot_from_data(json_str, **kwargs):
                             x=[dip[1]],
                             y=[gr_value],
                             width=1,
-                            marker=dict(color=fig.layout.template.layout.colorway[i]),
+                            marker=dict(color=fig.layout.template.layout.colorway[i],
+                                        line=dict(width=3,
+                                                  color=fig.layout.template.layout.colorway[i]
+                                                  )
+                                        ),
                             opacity=0.25,
                             name=f'IRM GR - {s.name}',
                             hovertext=f'IRM GR {max_dip} - {s.name}',
                             hoverinfo='x+y+text',  # Show x, y, and hover text
                             legendgroup=f'[T-Dip] IRM GR - {s.name}',
                             yaxis='y6'
+                        )
+                    )
+                    if not gr_value == 0:
+                        continue
+                    gr_bars.append(
+                        go.Scatter(
+                            x=[dip[1]],
+                            y=[0],  # Match the zero value
+                            mode='markers',
+                            marker=dict(size=10, color='rgba(0,0,0,0)'),  # Invisible marker
+                            hovertext=[f'IRM GR=0 {max_dip} - {s.name}'],  # Custom hovertext
+                            hoverinfo='text',  # Only show hovertext
+                            legendgroup=f'[T-Dip] IRM GR - {s.name}',
+                            yaxis='y6',
                         )
                     )
 
