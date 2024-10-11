@@ -698,41 +698,53 @@ def resilience_over_time(dips_resilience):
     for metrics_dict in dips_resilience.values():
         available_metrics.intersection_update(metrics_dict.keys())
 
-    # Calculate differential quotients and overall mean for each metric
+    # Calculate antifragility under u for each metric
     for metric in available_metrics:
-        # Initialize lists for differential quotients and values
-        diff_q = []
-        prev_end = None
-        prev_value = None
+        u = [v[metric] for v in dips_resilience.values()]
+        if not len(u) >= 2:
+            results[metric] = None
+            continue
 
-        for (start, end), metrics_dict in dips_resilience.items():
-            if metric in metrics_dict:
-                value = metrics_dict[metric]
-                if prev_value is not None:
-                    # Calculate differential quotient
-                    quotient = (value - prev_value) / (end - prev_end)
-                    diff_q.append((end, quotient))
+        # Calculate M_u
+        # Fraction of antifragile sequence fulfillment
+        M_u = sum(1 for k in range(1, len(u)) if u[k] - u[k - 1] >= 0) / (len(u) - 1)
 
-                # Update previous values
-                prev_end = end
-                prev_value = value
+        # If constant u
+        if all(x == u[0] for x in u):
+            I_u = 0
+            A_u = 1
 
-        # Calculate overall mean differential quotient
-        if diff_q:
-            mean_diff_q = sum(q for _, q in diff_q) / len(diff_q)
         else:
-            mean_diff_q = None  # Handle the case where no differential quotients were calculated
+            I_k = []
+            # Calculate I_k values
+            for k in range(1, len(u)):
+                if u[k - 1] != 0:  # Avoid division by zero
+                    I_k.append((u[k] - u[k - 1]) / u[k - 1])
+                else:
+                    I_k.append(0)  # Substitute with 0 for undefined I_k
+
+            # Calculate I_u (average rate of improvement)
+            I_u = np.mean(I_k)
+
+            # Calculate A_u
+            # Antifragility under u
+            A_u = sum(max(0, i) for i in I_k) / (sum(abs(i) for i in I_k))
+
+        # Calculate the degree of antifragility under u: alpha_u
+        alpha_u = A_u if A_u < 1 else 1 + I_u
 
         # Store results
         results[metric] = {
-            "diff_q": diff_q,
-            "overall": mean_diff_q
+            "M_u": M_u,
+            "I_u": I_u,
+            "A_u": A_u,
+            "alpha_u": alpha_u
         }
 
     return results
 
 
-def get_max_dip_auc(y_values, max_dips):
+def get_dip_auc(y_values, max_dips):
     """
     Calculate the Area Under Curve (AUC) for each dip defined in `max_dips`.
 
@@ -751,7 +763,7 @@ def get_max_dip_auc(y_values, max_dips):
     Example:
     >>> y_values = [10, 20, 30, 25, 30, 28, 20, 18, 22, 25, 30, 35, 40, 38, 36, 30, 25, 22, 20, 18]
     >>> max_dips = [(5, 10), (15, 20)]
-    >>> result = get_max_dip_auc(y_values, max_dips)
+    >>> result = get_dip_auc(y_values, max_dips)
     >>> print(result)
     {
         (5, 10): 10.5,  # Example AUC values (not accurate)
@@ -759,16 +771,16 @@ def get_max_dip_auc(y_values, max_dips):
     }
     """
     # Dictionary to store the AUC for each dip
-    max_dip_auc_info = {}
+    dip_auc_info = {}
 
     # Iterate over each dip defined by its start and end indices
     for dip in max_dips:
         # Extract the segment of y_values corresponding to the current dip
         segment = y_values[dip[0]:dip[1] + 1]
         # Calculate the AUC for the segment and store it in the dictionary
-        max_dip_auc_info[dip] = calculate_kernel_auc(segment)[-1]
+        dip_auc_info[dip] = calculate_kernel_auc(segment)[-1]
 
-    return max_dip_auc_info
+    return dip_auc_info
 
 
 def get_max_dip_integrated_resilience_metric(y_values, max_dips):
