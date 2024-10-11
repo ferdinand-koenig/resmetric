@@ -68,7 +68,7 @@ def print_workflow():
     ┌──────────────────────────────────┐ ┌───────────────────────────────────────────────────────┐ 
     │    Calculate Resilience          │ │   Calculate Resilience  (per Dip)                     │ 
     ├──────────────────────────────────┤ ├───────────────────────────────────────────────────────┤ 
-    │ --auc    AUC devided by length   │ │ --max-dip-auc  AUC per dip (divided by length)        │ 
+    │ --auc    AUC devided by length   │ │ --dip-auc  AUC per dip (divided by length)            │ 
     │          of time frame and       │ │ --bars         Robustness, Recovery,                  │ 
     │          weighted by kernel      │ │                and Recovery Rate                      │ 
     │ --count  How many times dropped  │ │ --gr           Integrated Resilience Metric (IRM) (GR)│ 
@@ -176,7 +176,7 @@ def main():
     # Create the mutually exclusive group within the dip_detect_group
     mutually_exclusive_group = dip_detect_group.add_mutually_exclusive_group()
 
-    mutually_exclusive_group.add_argument('--max_dips', action='store_true',
+    mutually_exclusive_group.add_argument('--max-dips', action='store_true',
                                           help='Detect maximal dips based on local maxima (default)')
     mutually_exclusive_group.add_argument('--threshold-dips', action='store_true',
                                           help='Detect dips based on threshold (--threshold)')
@@ -190,7 +190,7 @@ def main():
     basic_group = parser.add_argument_group('[T-Dip] Core Resilience-Related Trace Options')
     # basic_group.add_argument('--all-core', action='store_true',
     #                          help='Select all core resilience-related trace options.')
-    basic_group.add_argument('--max-dip-auc', action='store_true',
+    basic_group.add_argument('--dip-auc', action='store_true',
                              help='Include AUC bars for the AUC of one maximal dip (AUC devided by the length of the '
                                   'time frame)')
     basic_group.add_argument('--bars', action='store_true',
@@ -290,7 +290,7 @@ def main():
     # Convert args to a dictionary of keyword arguments
     kwargs = {
         'include_auc': args.auc,
-        'include_max_dip_auc': args.max_dip_auc,
+        'include_dip_auc': args.dip_auc,
         'include_count_below_thresh': args.count,
         'include_time_below_thresh': args.time,
         'threshold': args.threshold,
