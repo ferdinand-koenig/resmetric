@@ -20,7 +20,7 @@ from .metrics import (
     _perform_bayesian_optimization,
     _make_color_pale_hex,
     resilience_over_time,
-    get_max_dip_auc,
+    get_dip_auc,
     mdd_to_robustness,
     dip_to_recovery_rate,
     get_max_dip_integrated_resilience_metric,
@@ -30,10 +30,18 @@ from .metrics import (
 # Global variable to control printing
 verbose = True
 
+# Text font of a bar
+BAR_TEXT_FONT = dict(
+    size=40,  # Set the font size
+    color='black',  # Set the font color to black
+)
+
+
 def set_verbose(enabled):
     """Enable or disable verbose output."""
     global verbose
     verbose = enabled
+
 
 def vprint(*args, **kwargs):
     """Print only if verbose is enabled."""
@@ -83,7 +91,7 @@ def create_plot_from_data(json_str, **kwargs):
         - no_lin_reg_prepro (bool): include_lin_reg automatically preprocesses and updates the series. If you do
           not wish this, set this flag to True
 
-        - include_max_dip_auc (bool): Include AUC bars for the AUC of one maximal dip
+        - include_dip_auc (bool): Include AUC bars for the AUC of one maximal dip
           (AUC devided by the length of the time frame)
         - include_bars (bool): Include bars for robustness, recovery and recovery time.
         - include_gr (bool): Include the Integrated Resilience Metric
@@ -140,7 +148,7 @@ def create_plot_from_data(json_str, **kwargs):
     derivative_traces = []
     lin_reg_traces = []
     antifrag_diff_qu_traces = []
-    max_dip_auc_bars = []
+    dip_auc_bars = []
     gr_bars = []
 
     # Retrieve optional arguments with defaults
@@ -149,6 +157,10 @@ def create_plot_from_data(json_str, **kwargs):
     dimensions = kwargs.get('dimensions', 10)
     weighted_auc_half_life = kwargs.get('weighted_auc_half_life', 2)
     smoother_threshold = kwargs.get('smoother_threshold', 2)
+
+    if kwargs.get('include_lin_reg', False) is not False:
+        lin_reg_threshold = .5e-2 if kwargs['include_lin_reg'] is True else abs(kwargs['include_lin_reg'])
+        vprint(f'Using threshold {lin_reg_threshold}')
 
     # Initialize variables for global x limits
     global_x_min = float('inf')
@@ -183,15 +195,13 @@ def create_plot_from_data(json_str, **kwargs):
 
         # [T-Dip] Fit the piecewise linear model and add to traces if requested
         if kwargs.get('include_lin_reg', False) is not False:
-            lin_reg_threshold = .5e-2 if kwargs['include_lin_reg'] is True else abs(kwargs['include_lin_reg'])
-            vprint(f'Using threshold {lin_reg_threshold}')
             # Suppress only UserWarnings temporarily
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", category=UserWarning)
 
                 # Perform Bayesian Optimization to find the optimal number of segments
                 vprint(f"[{datetime.now().strftime('%H:%M:%S')}] Calculating linear regression"
-                      f" of series {i + 1} of {len(series)}")
+                       f" of series {i + 1} of {len(series)}")
                 optimal_segments = _perform_bayesian_optimization(x_values, y_values,
                                                                   penalty_factor=penalty_factor,
                                                                   dimensions=dimensions)
@@ -247,13 +257,13 @@ def create_plot_from_data(json_str, **kwargs):
                 indices = [i for i in range(1, len(diff_q)) if diff_q[i] != diff_q[i - 1]]
                 indices.insert(0, 0)
                 slopes = [diff_q[index] for index in indices]
-                indices.append(len(x_values)-1)
+                indices.append(len(x_values) - 1)
 
                 segments = [{
-                        'start_point': (indices[i], pwlf_y[indices[i]]),
-                        'end_point': (indices[i+1], pwlf_y[indices[i+1]]),
-                        'slope': slope
-                    } for i, slope in enumerate(slopes)]
+                    'start_point': (indices[i], pwlf_y[indices[i]]),
+                    'end_point': (indices[i + 1], pwlf_y[indices[i + 1]]),
+                    'slope': slope
+                } for i, slope in enumerate(slopes)]
 
                 filtered_segments = [seg for seg in segments if abs(seg['slope']) < lin_reg_threshold]
 
@@ -444,12 +454,11 @@ def create_plot_from_data(json_str, **kwargs):
                 # Accommodate for two segments making one steady state
                 max_dips = [dip for dip in max_dips if dip[0] != dip[1]]
 
-
             # For a dip, get the maximal draw down (1- Robustness) Information and Recovery Information
             # Both infos are used later for adding the bars
             mdd_info = extract_mdd_from_dip(max_dips, y_values)
             recovery_info = get_recovery(y_values, max_dips, algorithm=recovery_algorithm)
-            max_dip_auc_info = get_max_dip_auc(y_values, max_dips)
+            dip_auc_info = get_dip_auc(y_values, max_dips)
 
             # Draw the detected dips
             for max_dip, info in mdd_info.items():
@@ -486,15 +495,19 @@ def create_plot_from_data(json_str, **kwargs):
                     )
                 )
 
-                if kwargs.get('include_max_dip_auc'):
+                if kwargs.get('include_dip_auc'):
                     # And make bars for the AUC of each dip
-                    max_dip_auc_bars.append(
+                    dip_auc_bars.append(
                         go.Bar(
                             x=[max_dip[1]],
-                            y=[max_dip_auc_info[max_dip]],
+                            y=[dip_auc_info[max_dip]],
                             width=1,
                             marker=dict(color=fig.layout.template.layout.colorway[i]),
-                            opacity=0.25,
+                            opacity=0.5,
+                            text="A ",
+                            textangle=90,
+                            textfont=BAR_TEXT_FONT,
+                            textposition='outside',
                             name=f'(Local) AUC for dip {max_dip} - {s.name}',
                             hovertext=f'(Local) AUC for dip {max_dip} - {s.name}',
                             hoverinfo='x+y+text',  # Show x, y, and hover text
@@ -525,7 +538,11 @@ def create_plot_from_data(json_str, **kwargs):
                             y=[mdd_to_robustness(info['value'])],
                             width=1,
                             marker=dict(color=fig.layout.template.layout.colorway[i]),
-                            opacity=0.25,
+                            opacity=0.5,
+                            text="R ",
+                            textangle=90,
+                            textfont=BAR_TEXT_FONT,
+                            textposition='outside',
                             name=f'Robustness - {s.name}',
                             hovertext=f'Robustness - {s.name}',
                             hoverinfo='x+y+text',  # Show x, y, and hover text
@@ -538,7 +555,11 @@ def create_plot_from_data(json_str, **kwargs):
                             y=[dip_to_recovery_rate(max_dip)],
                             width=1,
                             marker=dict(color=fig.layout.template.layout.colorway[i]),
-                            opacity=0.25,
+                            opacity=0.5,
+                            text="RR",
+                            textangle=90,
+                            textfont=BAR_TEXT_FONT,
+                            textposition='outside',
                             name=f'Recovery Rate - {s.name}',
                             hovertext=f'Recovery Rate - {s.name}',
                             hoverinfo='x+y+text',  # Show x, y, and hover text
@@ -552,9 +573,13 @@ def create_plot_from_data(json_str, **kwargs):
                             y=[recovery['relative_recovery']],
                             width=1,
                             marker=dict(color=fig.layout.template.layout.colorway[i]),
-                            opacity=0.25,
-                            name=f'Rel. Recovery - {s.name}',
-                            hovertext=f'Rel. Recovery - {s.name}',
+                            opacity=0.5,
+                            text="AC",
+                            textangle=90,
+                            textfont=BAR_TEXT_FONT,
+                            textposition='outside',
+                            name=f'Adaptive Capacity - {s.name}',
+                            hovertext=f'Adaptive Capacity - {s.name}',
                             hoverinfo='x+y+text',  # Show x, y, and hover text
                             legendgroup=f'[T-Dip] Resilience - {s.name}',
                         )
@@ -575,7 +600,11 @@ def create_plot_from_data(json_str, **kwargs):
                                                   color=fig.layout.template.layout.colorway[i]
                                                   )
                                         ),
-                            opacity=0.25,
+                            opacity=0.5,
+                            text="GR",
+                            textfont=BAR_TEXT_FONT,
+                            textposition='outside',
+                            textangle=90,
                             name=f'IRM GR - {s.name}',
                             hovertext=f'IRM GR {max_dip} - {s.name}',
                             hoverinfo='x+y+text',  # Show x, y, and hover text
@@ -600,10 +629,6 @@ def create_plot_from_data(json_str, **kwargs):
 
             ##############################
             # [T-Dip] "antiFragility"
-            # mdd_info = extract_mdd_from_dip(max_dips, y_values) # Robustness
-            #  recovery_info = get_recovery(y_values, max_dips)
-            # AUC
-            # length
             if kwargs.get('calc_res_over_time'):
                 # Construct input
                 dips_resilience = {d: {} for d in max_dips}
@@ -614,45 +639,38 @@ def create_plot_from_data(json_str, **kwargs):
                         dips_resilience[dip]['recovery'] = recovery_info[dip[1]]['relative_recovery']
                         dips_resilience[dip]['recovery rate'] = dip_to_recovery_rate(dip)
 
-                if kwargs.get('include_max_dip_auc'):
-                    assert set(dips_resilience.keys()) == set(max_dip_auc_info.keys()), "Keys (Dips) do no match"
-                    for dip, auc in max_dip_auc_info.items():
+                if kwargs.get('include_dip_auc'):
+                    assert set(dips_resilience.keys()) == set(dip_auc_info.keys()), "Keys (Dips) do no match"
+                    for dip, auc in dip_auc_info.items():
                         dips_resilience[dip]['auc'] = auc
 
                 if kwargs.get('include_gr'):
                     for dip, gr_value in gr.items():
                         dips_resilience[dip]['IRM GR'] = gr_value
 
+                if kwargs.get('include_bars') or kwargs.get('include_dip_auc') + kwargs.get('include_gr') > 1:
+                    for dip in max_dips:
+                        dips_resilience[dip]['overall'] = np.mean(list(dips_resilience[dip].values()))
+
+                antifragility = resilience_over_time(dips_resilience)
+
                 # take output and draw the traces
-                for metric, metric_change in resilience_over_time(dips_resilience).items():
+                for metric, antifrag_dict in antifragility.items():
+                    if antifrag_dict is None:  # metric had less than 2 instances
+                        continue
+                    name = f"Degree of Antifragility {f'under {metric}' if metric is not 'overall' else '(overall)'}"
                     antifrag_diff_qu_traces.append(
                         go.Scatter(
-                            x=[end for end, _ in metric_change.get('diff_q')],
-                            y=[quotient for _, quotient in metric_change.get('diff_q')],
-                            mode='lines+markers',
-                            line=dict(color=fig.layout.template.layout.colorway[i],
-                                      dash='dot'),
-                            marker=dict(
-                                symbol='cross',
-                                size=8,
-                                color='black'
-                            ),
-                            name=f'Diff. quot. of {metric} - {s.name}',
-                            hovertext=f'Diff. quot. of {metric} - <br>{s.name}',
-                            legendgroup=f'"Antifragility" - {s.name}',
-                            hoverinfo='x+y+text',  # Show x, y, and hover text
-                            yaxis='y5'
-                        )
-                    )
-                    antifrag_diff_qu_traces.append(
-                        go.Scatter(
-                            x=[global_x_min, global_x_max],  # Extend the line across the global x-axis range
-                            y=[metric_change.get('overall'), metric_change.get('overall')],
-                            mode='lines',
-                            name=f'Mean Diff. quot. of {metric} - {s.name}',
-                            hovertext=f'Mean Diff. quot. of {metric} - <br>{s.name}',
-                            legendgroup=f'"Antifragility" - {s.name}',
-                            line=dict(dash='dash', color='black'),
+                            x=[global_x_min - (1 + i), global_x_max + 1 + i],  # Extend the line to visualize better
+                            y=[antifrag_dict.get('alpha_u'), antifrag_dict.get('alpha_u')],
+                            mode="markers+lines",
+                            marker=dict(size=10, symbol="cross", line=dict(width=1, color="DarkSlateGrey"))
+                            if not metric == "overall"
+                            else dict(size=14, symbol="diamond", line=dict(width=2, color="DarkSlateGrey")),
+                            name=f'{name} - {s.name}',
+                            hovertext=f'{name} - <br>{s.name}',
+                            legendgroup=f'Degree of Antifragility - {s.name}',
+                            line=dict(dash='dash', color=fig.layout.template.layout.colorway[i]),
                             yaxis='y5',
                             hoverinfo='x+y+text',  # Show x, y, and hover text
                         )
@@ -690,12 +708,13 @@ def create_plot_from_data(json_str, **kwargs):
             autoshift=True
         ),
         yaxis5=dict(
-            title='Differential Quotient "Antifragility"',
+            title='Degree of Antifragility alpha_u',
             overlaying='y',
             anchor='free',
             side='right',
             autoshift=True,
-            zeroline=True
+            zeroline=True,
+            rangemode="tozero",
         ),
         yaxis6=dict(
             title='Integrated Resilience Metric (IRM) GR',
@@ -733,8 +752,8 @@ def create_plot_from_data(json_str, **kwargs):
         all_traces += derivative_traces
     if kwargs.get('include_lin_reg'):
         all_traces += lin_reg_traces
-    if kwargs.get('include_max_dip_auc'):
-        all_traces += max_dip_auc_bars
+    if kwargs.get('include_dip_auc'):
+        all_traces += dip_auc_bars
     if kwargs.get('include_gr'):
         all_traces += gr_bars
     if kwargs.get('calc_res_over_time'):
