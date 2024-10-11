@@ -238,31 +238,128 @@ Please place the downloaded file in a subdirectory called `example` to use the e
 To illustrate the tool's capabilities with relevant data, we utilized the classification accuracy graph presented by Gheibi and Weyns[^1]. Although the graph is not included in their paper, it reflects the same reported results and can be accessed through the accompanying replication package[^2]. We added a fourth curve by incorporating the classification performance of an ensemble learner, complementing the three existing performance curves. Their study proposes a self-adaptive, lifelong machine learning model, demonstrating its effectiveness in classifying gas in a pipeline[^3][^4].
 
 [^1]: [Omid Gheibi and Danny Weyns. 2022. Lifelong Self-Adaptation: Self-Adaptation Meets Lifelong Machine Learning. In 17th International Symposium on Software Engineering for Adaptive and Self-Managing Systems (SEAMS ’22), May 18–23, 2022, PITTSBURGH, PA, USA. ACM, New York, NY, USA, 12 pages](https://doi.org/10.1145/3524844.3528052)
+
 [^2]: [Replication package for Gas Delivery Case](https://people.cs.kuleuven.be/~danny.weyns/software/LLSAS/) Accessed: 2024-05-07
+
 [^3]: [Vergara, A., Vembu, S., Ayhan, T., Ryan, M. A., Homer, M. L., and Huerta, R. Chemical gas sensor drift compensation using classifier ensembles. Sensors and Actuators B: Chemical 166-167 (2012), 320–329.](https://doi.org/10.1016/j.snb.2012.01.074)
+
 [^4]: [Data: Gas Sensor Array Drift at Different Concentrations](https://doi.org/10.24432/C5MK6M)
 
-
-#### Example 1 - AUC, count and time below threshold
-AUC gives three traces per trace in the original plot: The weighted moving average,
-weighted 1) uniformly 2) with an exponential decay and 3) with an inverse distance weighting.
-With the latter two, more recent points contribute more to the average AUC at a given time.
+#### Example 0 - The Input
+To inspect the input that is provided to our tool, run
 ```bash
-resmetric-cli --count --time --auc ./example/fig.json
+resmetric-cli ./example/fig.json
 ```
-![count-time-auc.png](/example/count-time-auc.png)
+This is the input we are providing the tool:
+![img.png](example/fig.png)
 
-#### Example 2 - Maximal dips with Maximal draw-downs and recoveries
-```bash
- resmetric-cli --max_dips --bars ./example/fig.json
-```
+#### Example 1 - Dip-Agnostic Resilience Metrics (AUC, Threshold)
+![auc-count-time.png](/example/auc-count-time.png)
+
+This example walks you through the most important dip-agnostic Resilience Metrics.
+1. Run
+    ```bash
+    resmetric-cli --auc --count --time ./example/fig.json
+    ```
+2. A browser tab will open and show the output. Use the legend to select the tracks you want to analyze. Double-click
+   on the second entry _"SVC using a previous batch (State-of-the-art)"_. This is the graph of normalized system 
+   performance. All other tracks will disappear.
+3. The **Area Under Curve (AUC)** is the weighted moving average of the normalized system performance. Select now the 
+   three traces _"{AUC, AUC-exp, AUC-in} SVC using a previous batch (State-of-the-art)"_. They use three types of
+   weighting 1) uniformly 2) with an exponential decay and 3) with an inverse distance weighting.
+   With the latter two, more recent points contribute more to the average AUC at a given time.
+4. Now, select all traces in orange and the **threshold** line. This means, click on _"Threshold: 80%"_,
+   _"Count below 80% - SVC using a previous batch (State-of-the-art)"_, and
+   _"Time below 80% - SVC using a previous batch (State-of-the-art)"_. A dashed line (the threshold) appears. The
+   times are counted how often the normalized system performance dropped below the threshold (count) and how much
+   time it spent there (time).
+5. To see all data, hover the x-axis (Batch Index (chronological order)) at around `x=0`. By dragging towards
+   the right side of your screen, you are able to scale the plot.
+
+Now, you see the image of above. You might also set the threshold by yourself with `--treshold 70`.
+
+Metrics of this type are used when we do not care or cannot say when a dip starts (disruption) and ends (system adapted
+and recovered). A threshold is utilized if there is a defined or meaningful minimum tolerable performance.
+
+
+#### Example 2 - Robustness, Recovery Rate, and Recovery Ability
 ![max_dips-bars.png](/example/max_dips-bars.png)
 
+This example introduces Robustness (R), Recovery Rate (RR), and Adaptive Capacity (AC) as the first dip-dependent
+metrics. As a dip detection, we use maxima.
+1. Run
+    ```bash
+     resmetric-cli --max-dips --bars ./example/fig.json
+    ```
+2. Analogously as done in example 1, select the blue traces.
+
+You can see annotated bars. They have the same acronyms as types above.
+
+- **Robustness (R)** is meaningful if it is important that the system remains some minimal functionality
+- The **Recovery Rate (RR)** might be employed when quick adaptation or short durations of
+   performance gradation are required
+- If the systems ability to recover after a disruption should be measured, the **Adaptive Capacity (AC)** will be the key
+   metric.
+
+
 #### Example 3 - Linear Regression with auto segmentation
-```bash
- resmetric-cli --lin-reg -- ./example/fig.json
-```
 ![lg.png](/example/lg.png)
+```bash
+resmetric-cli --lin-reg --lin-reg-dips --dip-auc --gr ./example/fig.json
+```
+Before we start with the example, some foundations:
+The biggest problem is that in a lot of setups, we do not have the exact times, when a disruption happened and therefore
+where start and end the measurement is. If you have them though (through other priors or because you ran a controlled
+environment--great! `--manual-dips` allows you to pass them!) For the not so lucky:
+
+We assume that behind the noise, the system has steady phases. If the performance diminishes, there is a disruption.
+This tool has multiple algorithms that try to detect these. The previous examples use the maxima-based
+algorithm `--max-dips`. It is superfast and works without a prior. However, it is still susceptible to noise.
+Another option is `--threshold-dips`. When the performance graph drops below a certain threshold, you have a dip.
+It is also among the faster options. The by far slowest option delivers the best results, because it approximates
+the function by linear regeression lines and keeps the ones with low slope:`--lin-reg --lin-reg-dips`. However, this
+algorithm is the most robust against noise and the only algorithm that actuall 
+
+In this example, the AUC per dip and Integrated Resilience Metric (IRM) are calculated. The IRM is also called GR by
+Sansavini[^5]. (We adapted his formula by using TAPL+1 instead of TAPL.) 
+
+[^5] [G. Sansavini, “Engineering Resilience in Critical Infrastructures,” in Resilience and Risk, I. Linkov and J. M.
+Palma-Oliveira, Eds., Dordrecht: Springer Netherlands,
+2017, pp. 189–203, ISBN: 978-94-024-1123-2. DOI: 10.
+1007/978-94-024-1123-2 6.](https://doi.org/10.1007/978-94-024-1123-2_6), Chapter 6, formula 6.12
+
+
+#### Example 4 - Antifragility under u for dip-dependent metrics
+Sometimes, we want to test if a Resilience Metric u improves over time. This is what we call the
+**Degree of Antifragility under u**: &alpha;_u (or alpha_u). It quantifies the monotonicity, i.e., the improvement of u.
+If &alpha;_u >=1, the system is antifragile and improves with each step.
+A higher number indicates faster improvement / growth of
+resilience. If 0 <= &alpha;_u <= 1, &alpha;_u indicates how monotonic increasing the system is. It is a membership
+function for antifragility. If &alpha;_u = 0, the resilience is strictly monotonically decreasing.
+
+The analysis will depend on the Resilience Metric's sequence which depends on the start and end points of dips which
+in turn depends on the Dip Detection algorithm. So, be cautious with your assumptions. The following examples
+demonstrate the differences.
+
+##### 4a) Using Max Dips algorithm
+![antifrag-max-dips.png](/example/antifrag-max-dips.png)
+```bash
+resmetric-cli --max-dips --bars --calc-res-over-time ./example/fig.json
+```
+Let's focus on the orange and green traces. As demonstrated in Example 2, `--bars` analyzes the robustness, recovery
+rate and adaptive capacity. Therefore, the antifragility of those will be calculated.
+
+Imagine that we take an overall resilience metric by taking the mean of each u. This allows us to calculate an overall
+degree of antifragility which is marked by the little diamond.
+
+##### 4b) Using linear regression dips
+![antifrag-lg.png](example/antifrag-lg.png)
+```bash
+resmetric-cli --lin-reg --lin-reg-dips --bars --calc-res-over-time ./example/fig.json
+```
+In this result, the green trace just has one dip and therefore only one measure for a metric. Hence, &alpha;_u cannot
+be calculated and is also not dsplayed.
+
 
 ## Comment on execution times
 The calculations for the linear regression (`--lin-reg --`) take some minutes.
