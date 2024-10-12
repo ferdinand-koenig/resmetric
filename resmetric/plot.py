@@ -658,7 +658,7 @@ def create_plot_from_data(json_str, **kwargs):
                 for metric, antifrag_dict in antifragility.items():
                     if antifrag_dict is None:  # metric had less than 2 instances
                         continue
-                    name = f"Degree of Antifragility {f'under {metric}' if metric is not 'overall' else '(overall)'}"
+                    name = f"Degree of Antifragility {f'under {metric}' if metric != 'overall' else '(overall)'}"
                     antifrag_diff_qu_traces.append(
                         go.Scatter(
                             x=[global_x_min - (1 + i), global_x_max + 1 + i],  # Extend the line to visualize better
