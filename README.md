@@ -323,7 +323,7 @@ algorithm is the most robust against noise and the only algorithm that actuall
 In this example, the AUC per dip and Integrated Resilience Metric (IRM) are calculated. The IRM is also called GR by
 Sansavini[^5]. (We adapted his formula by using TAPL+1 instead of TAPL.) 
 
-[^5] [G. Sansavini, “Engineering Resilience in Critical Infrastructures,” in Resilience and Risk, I. Linkov and J. M.
+[^5] [G. Sansavini, "Engineering Resilience in Critical Infrastructures," in Resilience and Risk, I. Linkov and J. M.
 Palma-Oliveira, Eds., Dordrecht: Springer Netherlands,
 2017, pp. 189–203, ISBN: 978-94-024-1123-2. DOI: 10.
 1007/978-94-024-1123-2 6.](https://doi.org/10.1007/978-94-024-1123-2_6), Chapter 6, formula 6.12
