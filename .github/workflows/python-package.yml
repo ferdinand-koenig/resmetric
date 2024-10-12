@@ -40,10 +40,13 @@ jobs:
     - name: Test Example Execution (resmetric-cli)
       run: |
         # Scenario 1
-        resmetric-cli --count --time --auc ./example/fig.json
+        resmetric-cli --auc --count --time ./example/fig.json
         # Scenario 2
-        resmetric-cli --max_dips --bars ./example/fig.json
+        resmetric-cli --max-dips --bars ./example/fig.json
         # Scenario 3 takes too long => pray and hope the code works
+        # Scenario 4a
+        resmetric-cli --max-dips --bars --calc-res-over-time ./example/fig.json
+        # Scenario 4b takes too long => pray and hope the code works
 
   macos-python-3_9:
     runs-on: macos-latest
@@ -74,10 +77,13 @@ jobs:
     - name: Test Example Execution (resmetric-cli)
       run: |
         # Scenario 1
-        resmetric-cli --count --time --auc ./example/fig.json
+        resmetric-cli --auc --count --time ./example/fig.json
         # Scenario 2
-        resmetric-cli --max_dips --bars ./example/fig.json
+        resmetric-cli --max-dips --bars ./example/fig.json
         # Scenario 3 takes too long => pray and hope the code works
+        # Scenario 4a
+        resmetric-cli --max-dips --bars --calc-res-over-time ./example/fig.json
+        # Scenario 4b takes too long => pray and hope the code works
 
   windows-python-3_9:
     runs-on: windows-latest
@@ -106,7 +112,10 @@ jobs:
     - name: Test Example Execution (resmetric-cli)
       run: |
         # Scenario 1
-        resmetric-cli --count --time --auc ./example/fig.json
+        resmetric-cli --auc --count --time ./example/fig.json
         # Scenario 2
-        resmetric-cli --max_dips --bars ./example/fig.json
+        resmetric-cli --max-dips --bars ./example/fig.json
         # Scenario 3 takes too long => pray and hope the code works
+        # Scenario 4a
+        resmetric-cli --max-dips --bars --calc-res-over-time ./example/fig.json
+        # Scenario 4b takes too long => pray and hope the code works
