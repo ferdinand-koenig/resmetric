@@ -761,12 +761,30 @@ def create_plot_from_data(json_str, **kwargs):
 
     # Update the figure with new data and layout
     fig = go.Figure(data=all_traces, layout=fig.layout)
-    fig.update_layout(barmode='overlay', margin=dict(l=10, r=20, t=10, b=10), legend=dict(
-        x=.02,
-        y=.98,
-        xanchor='left',
-        yanchor='top'
-    ))
+    fig.update_layout(
+        barmode='overlay',
+        margin=dict(l=10, r=20, t=10, b=10),
+        legend=dict(
+            x=.02,
+            y=.98,
+            xanchor='left',
+            yanchor='top'
+        ),
+        updatemenus=[{
+            'x': 0.0,   # Horizontal position (fraction of plot width)
+            'y': 1.0,   # Vertical position (fraction of plot height)
+            'type': 'buttons',
+            'showactive': False,
+            'buttons': [{
+                'name': 'Toggle legend',
+                'label': '≡',
+                'method': 'relayout',
+                'args': [{'showlegend': True}],
+                'args2': [{'showlegend': False}]
+            }],
+            'bgcolor': 'rgba(255, 255, 255, 0.3)',  # 70% transparent background
+        }]
+    )
 
     # Construct the legend
     legend_groups_seen = set()

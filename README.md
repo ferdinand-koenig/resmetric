@@ -275,6 +275,7 @@ This example walks you through the most important dip-agnostic Resilience Metric
    time it spent there (time).
 5. To see all data, hover the x-axis (Batch Index (chronological order)) at around `x=0`. By dragging towards
    the right side of your screen, you are able to scale the plot.
+6. Try to use the button [≡] in the upper left corner. There you can toggle the legend.
 
 Now, you see the image of above. You might also set the threshold by yourself with `--treshold 70`.
 
