@@ -253,6 +253,9 @@ resmetric-cli ./example/fig.json
 This is the input we are providing the tool:
 ![img.png](example/fig.png)
 
+Are these types of pictures not the thing you are looking for? Execution is not possible or taking too long?
+In `/example/plots/`, you can find the interactive HTML files and print-ready versions of the plots .
+
 #### Example 1 - Dip-Agnostic Resilience Metrics (AUC, Threshold)
 ![auc-count-time.png](/example/auc-count-time.png)
 
