@@ -396,7 +396,7 @@ As $M$ is user-set and small, it can be considered constant. This means the requ
 observations: $\mathcal{O}(N^3)$.  
 
 Threshold-based is $\mathcal{O}(N)$. The Max Dips algorithm has a time complexity of $\mathcal{O}(N + k^2)$,  
-where $k$ is the number of detected peaks within the series. Since data is noisy ($k \in \mathcal{O}(N)$),  
+where $k$ is the number of detected peaks within the series. Since data is noisy ( $k \in \mathcal{O}(N)$ ),  
 one can assume $\mathcal{O}(N^2)$. 
 
 ## Assumptions
