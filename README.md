@@ -107,7 +107,8 @@ import resmetric.plot as rp
 ```
 
 ### Using the Function
-The `create_plot_from_data` function generates a Plotly figure from JSON-encoded data and adds optional traces and analyses.
+The `create_plot_from_data` function generates a Plotly figure from JSON-encoded data and adds optional traces and
+analyses.
 
 #### Function Signature
 ```python
@@ -134,7 +135,9 @@ def create_plot_from_data(json_str, **kwargs):
 - **`include_time_below_thresh`** (`bool`): Include traces that accumulate time below the threshold.
 - **`threshold`** (`float`): Threshold for count and time traces (default: 80).
 - **`include_dips`** (`bool`): Include detected dips.
-- **`include_draw_downs_traces`** (`bool`): Include traces representing the relative loss at each point in the time series, calculated as the difference between the current value and the highest value reached up to that point, divided by that highest value.
+- **`include_draw_downs_traces`** (`bool`): Include traces representing the relative loss at each point in the time
+  series, calculated as the difference between the current value and the highest value reached up to that point,
+  divided by that highest value.
 - **`include_draw_downs_shapes`** (`bool`): Include shapes of local draw-downs.
 - **`include_derivatives`** (`bool`): Include derivatives traces.
 
@@ -143,8 +146,8 @@ def create_plot_from_data(json_str, **kwargs):
   It can be 'max_dips' (default), 'threshold_dips', 'manual_dips', 'lin_reg_dips' (the last requires
           `include_lin_reg`)
 - **`manual_dips`** (`list of tuples` or `None`): If 'manual_dips' is selected as the dip detection algorithm,
-  this should be a list of tuples specifying the manual dips. (E.g., `[(2,5), (33,42)]` for two dips from time t=2 to 5 and
-  33 to 42
+  this should be a list of tuples specifying the manual dips. (E.g., `[(2,5), (33,42)]` for two dips from time t=2 to 5 
+  and 33 to 42
 - **`include_lin_reg`** (`bool` or `float`): Include linear regression traces. Optionally float for threshold of slope. 
   Slopes above the absolute value are discarded. The threshold defaults to 0.5% (for value set to True).
   It is possible to pass `math.inf`. See also `no_lin_reg_prepro`
@@ -154,10 +157,10 @@ def create_plot_from_data(json_str, **kwargs):
 - **`include_max_dip_auc`** (`bool`): Include AUC bars for the AUC of one maximal dip
   (AUC devided by the length of the time frame)
 - **`include_bars`** (`bool`): Include bars for MDD and recovery.
-- **`include_gr`** (`bool`): Include the Integrated Resilience Metric
+- **`include_irm`** (`bool`): Include the Integrated Resilience Metric
   (cf. Sansavini, https://doi.org/10.1007/978-94-024-1123-2_6, Chapter 6, formula 6.12).
   Requires kwarg `recovery_algorithm='recovery_ability'`.
-- **`recovery_algorithm`** (`str` or `None`): Decides the recovery algorithm. Can either be `adaptive_capacity` (default)
+- **`recovery_algorithm`** (`str` or `None`): Decides the recovery algorithm. Can either be `adaptive_capacity`(default)
   or `recovery_ability`. The first one is the ratio of new to prior steady state's value `(Q(t_ns) / Q(t_0))`.
   The last one is `abs((Q(t_ns) - Q(t_r))/ (Q(t_0) - Q(t_r)))`
   where `Q(t_r)` is the local minimum within a dip (Robustness).
@@ -165,14 +168,16 @@ def create_plot_from_data(json_str, **kwargs):
 - **`calc_res_over_time`** (`bool`): Calculate the differential quotient for every per-dip Resilience-Related Trace.
 
 ##### Bayesian Optimization (Only for `include_lin_reg`)
-- **`penalty_factor`** (`float`): Penalty factor to penalize many segments / high number  of linear regression lines (default: 0.05).
+- **`penalty_factor`** (`float`): Penalty factor to penalize many segments / high number  of linear regression lines
+  (default: 0.05).
 - **`dimensions`** (`int`): Maximal number of segments for linear regression (default: 10).
 
 ##### AUC-related Options (Only for `include_auc`)
 - **`weighted_auc_half_life`** (`float`): Half-life for weighted AUC calculation (default: 2).
 
 ##### Smoothing Function Options (Only for `include_smooth_criminals`)
-- **`smoother_threshold`** (`float`): Threshold for the smoothing function in %. If a new point deviates only this much, the old value is preserved / copied (default: 2[%]).
+- **`smoother_threshold`** (`float`): Threshold for the smoothing function in %. If a new point deviates only this much,
+  the old value is preserved / copied (default: 2[%]).
 
 
 ## CLI Interface
@@ -235,7 +240,12 @@ print("Figure saved as 'plot.html'")
 To get started, you can download the example data `fig.json` [here](https://github.com/ferdinand-koenig/resmetric/blob/main/example/fig.json). 
 Please place the downloaded file in a subdirectory called `example` to use the examples as provided.
 
-To illustrate the tool's capabilities with relevant data, we utilized the classification accuracy graph presented by Gheibi and Weyns[^1]. Although the graph is not included in their paper, it reflects the same reported results and can be accessed through the accompanying replication package[^2]. We added a fourth curve by incorporating the classification performance of an ensemble learner, complementing the three existing performance curves. Their study proposes a self-adaptive, lifelong machine learning model, demonstrating its effectiveness in classifying gas in a pipeline[^3][^4].
+To illustrate the tool's capabilities with relevant data, we utilized the classification accuracy graph presented by
+Gheibi and Weyns[^1]. Although the graph is not included in their paper, it reflects the same reported results and
+can be accessed through the accompanying replication package[^2]. We added a fourth curve by incorporating the
+classification performance of an ensemble learner, complementing the three existing performance curves. Their study
+proposes a self-adaptive, lifelong machine learning model, demonstrating its effectiveness in classifying gas in
+a pipeline[^3][^4].
 
 [^1]: [Omid Gheibi and Danny Weyns. 2022. Lifelong Self-Adaptation: Self-Adaptation Meets Lifelong Machine Learning. In 17th International Symposium on Software Engineering for Adaptive and Self-Managing Systems (SEAMS ’22), May 18–23, 2022, PITTSBURGH, PA, USA. ACM, New York, NY, USA, 12 pages](https://doi.org/10.1145/3524844.3528052)
 
@@ -302,14 +312,14 @@ You can see annotated bars. They have the same acronyms as types above.
 - **Robustness (R)** is meaningful if it is important that the system remains some minimal functionality
 - The **Recovery Rate (RR)** might be employed when quick adaptation or short durations of
    performance gradation are required
-- If the systems ability to recover after a disruption should be measured, the **Adaptive Capacity (AC)** will be the key
-   metric.
+- If the systems ability to recover after a disruption should be measured, the **Adaptive Capacity (AC)** will be 
+   the key metric.
 
 
 #### Example 3 - Linear Regression with auto segmentation
 ![lg.png](/example/lg.png)
 ```bash
-resmetric-cli --lin-reg --lin-reg-dips --dip-auc --gr ./example/fig.json
+resmetric-cli --lin-reg --lin-reg-dips --dip-auc --irm ./example/fig.json
 ```
 Before we start with the example, some foundations:
 The biggest problem is that in a lot of setups, we do not have the exact times, when a disruption happened and therefore
@@ -362,12 +372,32 @@ degree of antifragility which is marked by the little diamond.
 resmetric-cli --lin-reg --lin-reg-dips --bars --calc-res-over-time ./example/fig.json
 ```
 In this result, the green trace just has one dip and therefore only one measure for a metric. Hence, &alpha;_u cannot
-be calculated and is also not dsplayed.
+be calculated and is also not displayed.
 
 
 ## Comment on execution times
 The calculations for the linear regression (`--lin-reg --`) take some minutes.
 So take a small break or fill up your coffee cup meanwhile :)
+
+In our example, the execution takes roughly 20 minutes for the four series of 136 data points each in the example file
+on a laptop with an Intel(R) Core(TM) i7-8650U CPU @ 1.90 GHz.
+Threshold Dips and Max Dips take $\sim 3s$ for the four series. (Both measured end to end,
+meaning from command to plot.) Conclusively, in our example, the linear regression dips algorithm is 400 times slower.
+Moreover, the calculation time grows faster (cubical, instead of linear and quadratic):
+
+The linear regression uses Bayesian Optimization using Gaussian Processes and
+takes $\mathcal{O}(tN^3 + tMN^2)$ (fitting + prediction), where $N$ are the samples (data points in a time series),  
+$M$ is the size of the search space (linear regression will have $m \in [1, M]$ segments;  
+the default for the upper bound $M$ is arbitrarily set to 20).  
+$t = 1.5 \cdot M \implies t \in \mathcal{O}(M)$ is the number of iterations (chosen arbitrarily).  
+Thus, $\mathcal{O}(MN^3 + M^2N^2)$.
+As $M$ is user-set and small, it can be considered constant. This means the required time grows cubic to the
+observations: $\mathcal{O}(N^3)$.  
+
+Threshold-based is in $\mathcal{O}(N)$.
+The Max Dips algorithm has a time complexity of $\mathcal{O}(N + k^2)$,
+where $k$ is the number of detected peaks within the series. Since data is noisy ( $k \in \mathcal{O}(N)$ ),
+one can assume $\mathcal{O}(N^2)$. 
 
 ## Assumptions
 Right now, the code has the assumptions
@@ -383,16 +413,21 @@ Contributions are welcome! Please submit a pull request or open an issue on the 
 Please check the development guide (README.md) and scripts in `/development/`
 
 ## About
-ResMetric is a Python module developed as part of my Master’s (M.Sc.) study project in Computer Science at Humboldt University of Berlin. It is a project within the Faculty of Mathematics and Natural Sciences, Department of Computer Science, Chair of Software Engineering.
+ResMetric is a Python module developed as part of my Master’s (M.Sc.) study project in Computer Science at Humboldt
+University of Berlin. It is a project within the Faculty of Mathematics and Natural Sciences,
+Department of Computer Science, Chair of Software Engineering.
 
-This project was supervised by Marc Carwehl. I would like to extend my sincere gratitude to Calum Imrie from the University of York for his invaluable support and feedback.
+This project was supervised by Marc Carwehl. I would like to extend my sincere gratitude to Calum Imrie from
+the University of York for his invaluable support and feedback.
 
 — Ferdinand Koenig
 
 ## License
 <p xmlns:cc="http://creativecommons.org/ns#" xmlns:dct="http://purl.org/dc/terms/"><span property="dct:title">ResMetric</span> by <span property="cc:attributionName">Ferdinand Koenig</span> is licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/?ref=chooser-v1" target="_blank" rel="license noopener noreferrer" style="display:inline-block;">CC BY-NC-SA 4.0<img style="height:22px!important;margin-left:3px;vertical-align:text-bottom;" src="https://mirrors.creativecommons.org/presskit/icons/cc.svg?ref=chooser-v1" alt=""><img style="height:22px!important;margin-left:3px;vertical-align:text-bottom;" src="https://mirrors.creativecommons.org/presskit/icons/by.svg?ref=chooser-v1" alt=""><img style="height:22px!important;margin-left:3px;vertical-align:text-bottom;" src="https://mirrors.creativecommons.org/presskit/icons/nc.svg?ref=chooser-v1" alt=""><img style="height:22px!important;margin-left:3px;vertical-align:text-bottom;" src="https://mirrors.creativecommons.org/presskit/icons/sa.svg?ref=chooser-v1" alt=""></a></p>
 
-This license requires that reusers give credit to the creator. It allows reusers to distribute, remix, adapt, and build upon the material in any medium or format, for noncommercial purposes only. If others modify or adapt the material, they must license the modified material under identical terms.
+This license requires that reusers give credit to the creator. It allows reusers to distribute, remix, adapt, and build
+upon the material in any medium or format, for noncommercial purposes only. If others modify or adapt the material,
+they must license the modified material under identical terms.
 
 If you are interested in a commercial license, please contact me!
 
@@ -410,7 +445,8 @@ outside of a virtual environment can lead to errors such as `error: externally-m
 **This is not a bug** with the `resmetric` package but rather expected behavior enforced by the operating system to keep
 system packages stable. Generally, to install Python packages without issues, you must use a virtual environment.
 
-If you encounter the installation error mentioning PEP 668 or `error: externally-managed-environment`, follow one of the strategies below:
+If you encounter the installation error mentioning PEP 668 or `error: externally-managed-environment`, follow one of
+the strategies below:
 
 #### Option 1: Use the [step-by-step installation guide](#step-by-step-installation-and-setup)
 The virtual environment fixes this issue.

@@ -69,9 +69,9 @@ def print_workflow():
     │    Calculate Resilience          │ │   Calculate Resilience  (per Dip)                     │ 
     ├──────────────────────────────────┤ ├───────────────────────────────────────────────────────┤ 
     │ --auc    AUC devided by length   │ │ --dip-auc  AUC per dip (divided by length)            │ 
-    │          of time frame and       │ │ --bars         Robustness, Recovery,                  │ 
+    │          of time frame and       │ │ --bars         Robustness, Recovery Level,            │ 
     │          weighted by kernel      │ │                and Recovery Rate                      │ 
-    │ --count  How many times dropped  │ │ --gr           Integrated Resilience Metric (IRM) (GR)│ 
+    │ --count  How many times dropped  │ │ --irm          Integrated Resilience Metric (IRM)     │ 
     │          below threshold         │ └──────────────────────────┬────────────────────────────┘ 
     │ --time   How much time spent     │                            ▼                              
     │          below threshold         │ ┌───────────────────────────────────────────────────────┐ 
@@ -194,20 +194,20 @@ def main():
                              help='Include AUC bars for the AUC of one maximal dip (AUC devided by the length of the '
                                   'time frame)')
     basic_group.add_argument('--bars', action='store_true',
-                             help='Include bars for robustness, recovery time and recovery.')
+                             help='Include bars for robustness, recovery time and recovery level.')
     # Create the mutually exclusive group within the dip_detect_group
     recovery_algorithm_group = basic_group.add_mutually_exclusive_group()
 
     recovery_algorithm_group.add_argument('--ada-ca', action='store_true', default=True,
-                                          help='Adaptive capacity. Algorithm for calculating recovery. '
+                                          help='Adaptive capacity. Algorithm for calculating the recovery level. '
                                                'The first one is the ratio of new to prior steady state\'s value. '
                                                '(Q(t_ns) / Q(t_0)) (default)')
     recovery_algorithm_group.add_argument('--rec-ab', action='store_true',
-                                          help='Recovery ability. Algorithm for calculating recovery. '
+                                          help='Recovery ability. Algorithm for calculating the recovery level. '
                                                'abs((Q(t_ns) - Q(t_r)) / (Q(t_0) - Q(t_r))) '
                                                'where Q(t_r) is the local minimum within a dip (Robustness).')
 
-    basic_group.add_argument('--gr', action='store_true',
+    basic_group.add_argument('--irm', action='store_true',
                              help='Include the Integrated Resilience Metric '
                                   '(Sansavini, https://doi.org/10.1007/978-94-024-1123-2_6, Chapter 6, formula 6.12, '
                                   'formula fixed to ((TAPL +1) ** -1)) cf. artefact publication))')
@@ -262,11 +262,11 @@ def main():
               "See help page '-h'")
         sys.exit(1)
 
-    dip_detect_algorithm = 'manual_dips' if args.manual_dips else 'threshold_dip' if args.threshold_dips \
+    dip_detect_algorithm = 'manual_dips' if args.manual_dips else 'threshold_dips' if args.threshold_dips \
         else 'max_dips' if args.max_dips else 'lin_reg_dips' if args.lin_reg_dips else None
     recovery_algorithm = 'recovery_ability' if args.rec_ab else 'adaptive_capacity'
-    # if args.gr and not args.rec_ab:
-    #     print('\n[Override notice] --gr requires --rec-ab as recovery algorithm.\n'
+    # if args.irm and not args.rec_ab:
+    #     print('\n[Override notice] --irm requires --rec-ab as recovery algorithm.\n'
     #           'This sets --rec-ab and changes the algorithm. See -h for more info.')
     #     recovery_algorithm = 'recovery_ability'
 
@@ -299,7 +299,7 @@ def main():
         'include_dips': args.dips,
         'include_draw_downs_shapes': args.drawdowns_shapes,
         'include_bars': args.bars,
-        'include_gr': args.gr,
+        'include_irm': args.irm,
         'include_derivatives': args.deriv,
         'include_lin_reg': args.lin_reg,
         'no_lin_reg_prepro': args.no_lin_reg_prepro,

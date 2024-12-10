@@ -331,7 +331,7 @@ def extract_max_dips_based_on_threshold(values, threshold):
 
     # Convert values to a NumPy array and create a binary array where values are above the threshold
     values = np.array(values)
-    below_list = ((values - threshold) > 0).astype(int)
+    below_list = ((values - (threshold / 100)) > 0).astype(int)
 
     def _sign_changes_series(series):
         """
@@ -545,7 +545,7 @@ def get_recovery(y_values, max_dips, algorithm='adaptive_capacity'):
     Parameters:
     - y_values (list or array): The y-values for the data points.
     - max_dips (list of tuples): List of tuples representing the dips with (start_index, end_index).
-    - algorithm (str): The recovery algorithm to use. Can be:
+    - algorithm (str): The recovery level algorithm to use. Can be:
       - 'adaptive_capacity' (default): Ratio of new steady state to prior steady state value (Q(t_ns) / Q(t_0)).
       - 'recovery_ability': Relative recovery as
         ((Q(t_ns) - Q(t_r)) / (Q(t_0) - Q(t_r))), where Q(t_r)
@@ -553,8 +553,8 @@ def get_recovery(y_values, max_dips, algorithm='adaptive_capacity'):
 
     Returns:
     - dict: Dictionary where keys are end indices of the dips and values are dictionaries containing:
-      - 'relative_recovery': The relative recovery metric.
-      - 'absolute_recovery': The absolute recovery metric.
+      - 'relative_recovery': The relative recovery metric. (recovery level)
+      - 'absolute_recovery': The absolute recovery metric. (recovery level)
       - 'line': A tuple representing a vertical line for visualization (e.g., (x_value, y_min, y_max)).
 
     Raises:
@@ -785,11 +785,11 @@ def get_dip_auc(y_values, max_dips):
 
 def get_max_dip_integrated_resilience_metric(y_values, max_dips):
     """
-    Calculate the Integrated Resilience Metric (GR) for each dip defined in `max_dips`.
+    Calculate the Integrated Resilience Metric for each dip defined in `max_dips`.
     (cf. Sansavini, https://doi.org/10.1007/978-94-024-1123-2_6, Chapter 6, formula 6.12,
     formula fixed to ((TAPL +1) ** -1)) cf. artefact publication)
 
-    This function computes the GR for segments of the `y_values` array corresponding
+    This function computes the IRM for segments of the `y_values` array corresponding
     to each dip range specified in `max_dips`.
 
     Parameters
@@ -798,12 +798,12 @@ def get_max_dip_integrated_resilience_metric(y_values, max_dips):
         A list or array of numerical values representing the data points.
     max_dips : list of tuples
         A list of tuples, where each tuple contains two elements (t_d, t_ns)
-        defining the range of the dip. Each range specifies the segment of `y_values` to calculate the GR for.
+        defining the range of the dip. Each range specifies the segment of `y_values` to calculate the IRM for.
 
     Returns
     -------
     dict
-        A dictionary where each key is a tuple representing a dip (t_d, t_ns), and the value is the GR
+        A dictionary where each key is a tuple representing a dip (t_d, t_ns), and the value is the IRM
         of that segment.
 
     Example
@@ -817,7 +817,7 @@ def get_max_dip_integrated_resilience_metric(y_values, max_dips):
         (15, 20): 7.1
     }
     """
-    gr_info = {}
+    irm_info = {}
 
     for dip in max_dips:
         t_d, t_ns = dip
@@ -845,20 +845,21 @@ def get_max_dip_integrated_resilience_metric(y_values, max_dips):
         # Time-Averaged Performance Loss (TAPL)
         TAPL = calculate_kernel_auc([Q_t_d - value for value in segment])[-1]
 
-        # Recovery Ability (RA)
+        # Recovery Ability (RA) (One form of recovery level)
         RA = get_recovery(segment, [(0, len(segment) - 1)],
                           algorithm='recovery_ability')[len(segment) - 1]['relative_recovery']
 
-        # Calculate GR
+        # Calculate IRM
         # Variant by Sansavini (Does not consider cases where TAPL < 0 (fatal)
-        # GR = Q_t_r * (RAPI_RP / RAPI_DP) * (TAPL ** -1) * RA
+        # In the original, GR is the symbol for IRM
+        # IRM = Q_t_r * (RAPI_RP / RAPI_DP) * (TAPL ** -1) * RA
 
         # Fixed version
-        GR = Q_t_r * (RAPI_RP / RAPI_DP) * ((TAPL + 1) ** -1) * RA
+        IRM = Q_t_r * (RAPI_RP / RAPI_DP) * ((TAPL + 1) ** -1) * RA
 
-        gr_info[dip] = GR
+        irm_info[dip] = IRM
 
-    return gr_info
+    return irm_info
 
 
 def mdd_to_robustness(mdd: float) -> float:
