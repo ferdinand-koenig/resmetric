@@ -379,9 +379,9 @@ be calculated and is also not displayed.
 The calculations for the linear regression (`--lin-reg --`) take some minutes.
 So take a small break or fill up your coffee cup meanwhile :)
 
-In our example, the execution takes roughly 20 minutes for the four series of 136 data points in the example file
+In our example, the execution takes roughly 20 minutes for the four series of 136 data points each in the example file
 on a laptop with an Intel(R) Core(TM) i7-8650U CPU @ 1.90 GHz.
-Threshold Dips and Max Dips take $\sim \frac{3}{4}s$ per series. (Both measured end to end,
+Threshold Dips and Max Dips take $\sim 3s$ for the four series. (Both measured end to end,
 meaning from command to plot.) Conclusively, in our example, the linear regression dips algorithm is 400 times slower.
 Moreover, the calculation time grows faster (cubical, instead of linear and quadratic):
 
