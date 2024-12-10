@@ -17,6 +17,8 @@ the `metrics` submodule provides functions that can calculate the metrics indivi
 > Any occurrences of "ANONYMIZED" in the text indicate that certain information or links have been removed to maintain
 > anonymity. The full details will be restored in the version prepared for publication.
 
+> **Note**: This README has adapted examples to work when downloading the review folder.
+
 ## Key Features
 - **Separation of Dip-Agnostic ([T-Ag]) and Dip-Dependent Metrics ([T-Dip])**: Analyze your performance graph w.r.t. resilience and 'antifragility' (See *Getting Started* Section)
 - **Dip-Agnostic Metrics** do not depend on where a disruption starts and the system is fully recovered. (AUC, count and time below a threshold, etc)
@@ -262,13 +264,14 @@ a pipeline[^3][^4].
 #### Example 0 - The Input
 To inspect the input that is provided to our tool, run
 ```bash
-resmetric-cli ./example/fig.json
+resmetric-cli ./fig.json
 ```
 This is the input we are providing the tool:
 ![img.png](example/fig.png)
 
 **Are these types of pictures not the thing you are looking for? Execution is not possible or taking too long?**
-In `/example/plots/`, you can find the interactive HTML files and print-ready versions of the plots .
+In `/example/plots/`, you can find the interactive HTML files and print-ready versions of the plots
+(not included in the ZIP archive).
 
 #### Example 1 - Dip-Agnostic Resilience Metrics (AUC, Threshold)
 ![auc-count-time.png](/example/auc-count-time.png)
@@ -276,7 +279,7 @@ In `/example/plots/`, you can find the interactive HTML files and print-ready ve
 This example walks you through the most important dip-agnostic Resilience Metrics.
 1. Run
     ```bash
-    resmetric-cli --auc --count --time ./example/fig.json
+    resmetric-cli --auc --count --time ./fig.json
     ```
 2. A browser tab will open and show the output. Use the legend to select the tracks you want to analyze. Double-click
    on the second entry _"SVC using a previous batch (State-of-the-art)"_. This is the graph of normalized system 
@@ -307,7 +310,7 @@ This example introduces Robustness (R), Recovery Rate (RR), and Adaptive Capacit
 metrics. As a dip detection, we use maxima.
 1. Run
     ```bash
-     resmetric-cli --max-dips --bars ./example/fig.json
+     resmetric-cli --max-dips --bars ./fig.json
     ```
 2. Analogously as done in example 1, select the blue traces.
 
@@ -323,7 +326,7 @@ You can see annotated bars. They have the same acronyms as types above.
 #### Example 3 - Linear Regression with auto segmentation
 ![lg.png](/example/lg.png)
 ```bash
-resmetric-cli --lin-reg --lin-reg-dips --dip-auc --irm ./example/fig.json
+resmetric-cli --lin-reg --lin-reg-dips --dip-auc --irm ./fig.json
 ```
 Before we start with the example, some foundations:
 The biggest problem is that in a lot of setups, we do not have the exact times, when a disruption happened and therefore
@@ -362,7 +365,7 @@ demonstrate the differences.
 ##### 4a) Using Max Dips algorithm
 ![antifrag-max-dips.png](/example/antifrag-max-dips.png)
 ```bash
-resmetric-cli --max-dips --bars --calc-res-over-time ./example/fig.json
+resmetric-cli --max-dips --bars --calc-res-over-time ./fig.json
 ```
 Let's focus on the orange and green traces. As demonstrated in Example 2, `--bars` analyzes the robustness, recovery
 rate and adaptive capacity. Therefore, the antifragility of those will be calculated.
@@ -373,7 +376,7 @@ degree of antifragility which is marked by the little diamond.
 ##### 4b) Using linear regression dips
 ![antifrag-lg.png](example/antifrag-lg.png)
 ```bash
-resmetric-cli --lin-reg --lin-reg-dips --bars --calc-res-over-time ./example/fig.json
+resmetric-cli --lin-reg --lin-reg-dips --bars --calc-res-over-time ./fig.json
 ```
 In this result, the green trace just has one dip and therefore only one measure for a metric. Hence, &alpha;_u cannot
 be calculated and is also not displayed.
