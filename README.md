@@ -17,6 +17,10 @@ the `metrics` submodule provides functions that can calculate the metrics indivi
 > Any occurrences of "ANONYMIZED" in the text indicate that certain information or links have been removed to maintain
 > anonymity. The full details will be restored in the version prepared for publication.
 
+> **Note for Reviewers**: For the best experience, please download the `review.zip` archive.
+> It contains all the essential files, along with a README that has adjusted file paths to make copying
+> and pasting the commands easy.
+
 ## Key Features
 - **Separation of Dip-Agnostic ([T-Ag]) and Dip-Dependent Metrics ([T-Dip])**: Analyze your performance graph w.r.t. resilience and 'antifragility' (See *Getting Started* Section)
 - **Dip-Agnostic Metrics** do not depend on where a disruption starts and the system is fully recovered. (AUC, count and time below a threshold, etc)
