@@ -54,6 +54,8 @@ Go to a folder where you want to place the installation and download the wheel (
         ```
         Please ensure you use the correct filename in the last command (e.g., `resmetric-1.0.0-py3-none-any.whl`).
 
+        On Windows, the installation takes a few minutes, while on Linux and macOS, it completes in under 30 seconds.
+
 2. **Use the package**
    If you continue right after step 1, you can use the tool and jump right in.
    If you have installed the package previously, you have to source your shell again:
