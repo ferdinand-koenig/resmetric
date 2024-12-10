@@ -3,7 +3,8 @@ from setuptools import setup, find_packages
 setup(
     name='resmetric',
     version='1.0.0-rc.3',
-    description='A Python module for enhancing Plotly figures with resilience-related metrics. (Anonymized version)',
+    description='A Python module for enhancing Plotly figures with resilience-related metrics. (Anonymized version for'
+                'review only)',
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
     packages=find_packages(exclude=['development', '.idea', 'example', 'evaluation']),
