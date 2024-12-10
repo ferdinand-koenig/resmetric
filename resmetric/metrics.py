@@ -504,18 +504,25 @@ def extract_mdd_from_dip(max_dips, values):
         # Detect local maxima
         maxima_indices = detect_peaks(dip_values[:min_index_in_dip])
         # Ensure that there is at least one minimum point within the dip range
-        assert len(maxima_indices) > 0, f"No maximum found within the dip range {(start, end)} before {min_index}"
-        max_before_min_in_dip = np.argmax(dip_values[maxima_indices])
-        max_value = dip_values[max_before_min_in_dip]
+        if not len(maxima_indices) > 0:
+            # This is the edge case when a dip consists of a sudden positive change
+            # The minimum is the first point and the values of the dip are monotonically increasing.
+            # f"No maximum found within the dip range {(start, end)} before {min_index}"
+            MDDs[(start, end)] = {
+                "value": 0,  # MDD value as a percentage
+                "line": ((min_index, min_value), (min_index, min_value))  # Vertical line for visualization
+            }
+        else:
+            max_before_min_in_dip = np.argmax(dip_values[maxima_indices])
+            max_value = dip_values[max_before_min_in_dip]
+            # Calculate the Maximum Drawdown (MDD) as a percentage of the max value before the dip
+            MDD_value = (max_value - min_value) / max_value
 
-        # Calculate the Maximum Drawdown (MDD) as a percentage of the max value before the dip
-        MDD_value = (max_value - min_value) / max_value
-
-        # Store the MDD value and the corresponding vertical line in the dictionary
-        MDDs[(start, end)] = {
-            "value": MDD_value,  # MDD value as a percentage
-            "line": ((min_index, min_value), (min_index, max_value))  # Vertical line for visualization
-        }
+            # Store the MDD value and the corresponding vertical line in the dictionary
+            MDDs[(start, end)] = {
+                "value": MDD_value,  # MDD value as a percentage
+                "line": ((min_index, min_value), (min_index, max_value))  # Vertical line for visualization
+            }
 
     # Return the dictionary containing MDD information for each dip
     return MDDs
