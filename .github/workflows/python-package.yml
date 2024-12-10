@@ -2,9 +2,9 @@ name: Python Package Test
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "anonymized" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "anonymized" ]
 
 jobs:
   ubuntu-python:

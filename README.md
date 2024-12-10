@@ -13,6 +13,10 @@ Plotly plots to visualize and analyze data more effectively. Therefore,
 different resilience metrics can be explored. In addition,
 the `metrics` submodule provides functions that can calculate the metrics individually!
 
+> **Note**: This README corresponds to the anonymized version, created for a double-blind review process.
+> Any occurrences of "ANONYMIZED" in the text indicate that certain information or links have been removed to maintain
+> anonymity. The full details will be restored in the version prepared for publication.
+
 ## Key Features
 - **Separation of Dip-Agnostic ([T-Ag]) and Dip-Dependent Metrics ([T-Dip])**: Analyze your performance graph w.r.t. resilience and 'antifragility' (See *Getting Started* Section)
 - **Dip-Agnostic Metrics** do not depend on where a disruption starts and the system is fully recovered. (AUC, count and time below a threshold, etc)
@@ -24,7 +28,7 @@ the `metrics` submodule provides functions that can calculate the metrics indivi
 ## Installation and Setup
 The following guide is for beginners. If you are not a beginner, feel free to skip the installation instructions!
 
-If you need the wheel file, you can find it in the [releases section](https://github.com/ferdinand-koenig/resmetric/releases).
+If you need the wheel file, you can find it in the [releases section] ANONYMIZED
 
 Having trouble installing it? Please check the installation note in the [appendix](#appendix) of this README.
 
@@ -237,7 +241,7 @@ print("Figure saved as 'plot.html'")
 ### Use as CLI tool
 *Note: The wheel (`.whl`) does not include example material.*
 
-To get started, you can download the example data `fig.json` [here](https://github.com/ferdinand-koenig/resmetric/blob/main/example/fig.json). 
+To get started, you can download the example data `fig.json` [here] ANONYMIZED. 
 Please place the downloaded file in a subdirectory called `example` to use the examples as provided.
 
 To illustrate the tool's capabilities with relevant data, we utilized the classification accuracy graph presented by
@@ -408,22 +412,15 @@ Right now, the code has the assumptions
 There are additional simple, synthetic cases to test the application in the folder `/evaluation/`.
 
 ## Contributing and developing
-Contributions are welcome! Please submit a pull request or open an issue on the [GitHub repository](https://github.com/ferdinand-koenig/resmetric).
+Contributions are welcome! Please submit a pull request or open an issue on the ANONYMIZED.
 
 Please check the development guide (README.md) and scripts in `/development/`
 
 ## About
-ResMetric is a Python module developed as part of my Master’s (M.Sc.) study project in Computer Science at Humboldt
-University of Berlin. It is a project within the Faculty of Mathematics and Natural Sciences,
-Department of Computer Science, Chair of Software Engineering.
-
-This project was supervised by Marc Carwehl. I would like to extend my sincere gratitude to Calum Imrie from
-the University of York for his invaluable support and feedback.
-
-— Ferdinand Koenig
+ANONYMIZED
 
 ## License
-<p xmlns:cc="http://creativecommons.org/ns#" xmlns:dct="http://purl.org/dc/terms/"><span property="dct:title">ResMetric</span> by <span property="cc:attributionName">Ferdinand Koenig</span> is licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/?ref=chooser-v1" target="_blank" rel="license noopener noreferrer" style="display:inline-block;">CC BY-NC-SA 4.0<img style="height:22px!important;margin-left:3px;vertical-align:text-bottom;" src="https://mirrors.creativecommons.org/presskit/icons/cc.svg?ref=chooser-v1" alt=""><img style="height:22px!important;margin-left:3px;vertical-align:text-bottom;" src="https://mirrors.creativecommons.org/presskit/icons/by.svg?ref=chooser-v1" alt=""><img style="height:22px!important;margin-left:3px;vertical-align:text-bottom;" src="https://mirrors.creativecommons.org/presskit/icons/nc.svg?ref=chooser-v1" alt=""><img style="height:22px!important;margin-left:3px;vertical-align:text-bottom;" src="https://mirrors.creativecommons.org/presskit/icons/sa.svg?ref=chooser-v1" alt=""></a></p>
+<p xmlns:cc="http://creativecommons.org/ns#" xmlns:dct="http://purl.org/dc/terms/"><span property="dct:title">ResMetric</span> by <span property="cc:attributionName">ANONYMIZED</span> is licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/?ref=chooser-v1" target="_blank" rel="license noopener noreferrer" style="display:inline-block;">CC BY-NC-SA 4.0<img style="height:22px!important;margin-left:3px;vertical-align:text-bottom;" src="https://mirrors.creativecommons.org/presskit/icons/cc.svg?ref=chooser-v1" alt=""><img style="height:22px!important;margin-left:3px;vertical-align:text-bottom;" src="https://mirrors.creativecommons.org/presskit/icons/by.svg?ref=chooser-v1" alt=""><img style="height:22px!important;margin-left:3px;vertical-align:text-bottom;" src="https://mirrors.creativecommons.org/presskit/icons/nc.svg?ref=chooser-v1" alt=""><img style="height:22px!important;margin-left:3px;vertical-align:text-bottom;" src="https://mirrors.creativecommons.org/presskit/icons/sa.svg?ref=chooser-v1" alt=""></a></p>
 
 This license requires that reusers give credit to the creator. It allows reusers to distribute, remix, adapt, and build
 upon the material in any medium or format, for noncommercial purposes only. If others modify or adapt the material,
@@ -431,7 +428,7 @@ they must license the modified material under identical terms.
 
 If you are interested in a commercial license, please contact me!
 
-ferdinand (-at-) koenix.de
+ANONYMIZED
 
 
 ## Appendix
