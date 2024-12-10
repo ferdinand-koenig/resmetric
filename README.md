@@ -376,7 +376,7 @@ meaning from command to plot.) Conclusively, in our example, the linear regressi
 Moreover, the calculation time grows faster (cubical, instead of linear and quadratic):
 
 The linear regression uses Bayesian Optimization using Gaussian Processes and  
-takes $ \mathcal{O}(tN^3 + tMN^2) $ (fitting + prediction),  
+takes $\mathcal{O}(tN^3 + tMN^2)$ (fitting + prediction),  
 where $ N $ are the samples (data points in a time series),  
 $ M $ is the size of the search space (linear regression will have $ m \in [1, M] $ segments;  
 the default for the upper bound $ M $ is arbitrarily set to 20).  
