@@ -71,7 +71,7 @@ def create_plot_from_data(json_str, **kwargs):
           the threshold.
         - include_time_below_thresh (bool): Include traces accumulating time
           below the threshold.
-        - threshold (float): Threshold for count and time traces (default is 80).
+        - threshold (float): Threshold in percent for count and time traces (default is 80[%]).
         - include_dips (bool): Include detected dips.
         - include_draw_downs_shapes (bool): Include shapes of local draw-downs.
         - include_draw_downs_traces (bool): Include traces representing the
@@ -86,7 +86,7 @@ def create_plot_from_data(json_str, **kwargs):
         - manual_dips (list of tuples or None): If 'manual_dips' is selected as the dip detection algorithm,
           this should be a list of tuples specifying the manual dips.
         - include_lin_reg (bool or float): Include linear regression traces. Optionally float for threshold of slope.
-          Slopes above the absolute value are discarded. Defaults to 0.5% (for value set to True).
+          Slopes above the absolute value are discarded. Defaults to 0.5% (for value set to True). (Unitless! not in %)
           It is possible to pass math.inf. See also `no_lin_reg_prepro`
         - no_lin_reg_prepro (bool): include_lin_reg automatically preprocesses and updates the series. If you do
           not wish this, set this flag to True
@@ -680,7 +680,8 @@ def create_plot_from_data(json_str, **kwargs):
                     )
 
     # Include threshold line if requested
-    if kwargs.get('include_time_below_thresh') or kwargs.get('include_count_below_thresh'):
+    if kwargs.get('include_time_below_thresh') or kwargs.get('include_count_below_thresh') \
+            or dip_detection_algorithm == "threshold_dips":
         threshold_line.append(go.Scatter(
             x=[global_x_min, global_x_max],  # Extend the line across the global x-axis range
             y=[threshold / 100, threshold / 100],
@@ -737,7 +738,8 @@ def create_plot_from_data(json_str, **kwargs):
         all_traces += count_below_thresh_traces
     if kwargs.get('include_time_below_thresh'):
         all_traces += time_below_thresh_traces
-    if kwargs.get('include_time_below_thresh') or kwargs.get('include_count_below_thresh'):
+    if kwargs.get('include_time_below_thresh') or kwargs.get('include_count_below_thresh') \
+            or dip_detection_algorithm == "threshold_dips":
         all_traces += threshold_line
     if kwargs.get('include_draw_downs_traces'):
         all_traces += drawdown_traces

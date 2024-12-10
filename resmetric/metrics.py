@@ -331,7 +331,7 @@ def extract_max_dips_based_on_threshold(values, threshold):
 
     # Convert values to a NumPy array and create a binary array where values are above the threshold
     values = np.array(values)
-    below_list = ((values - threshold) > 0).astype(int)
+    below_list = ((values - (threshold / 100)) > 0).astype(int)
 
     def _sign_changes_series(series):
         """
