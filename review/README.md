@@ -59,6 +59,8 @@ Go to a folder where you want to place the installation and download the wheel (
         py -m pip install resmetric-1.0.0rc3-py3-none-any.whl
         ```
         Please ensure you use the correct filename in the last command (e.g., `resmetric-1.0.0rc3-py3-none-any.whl`).
+        
+        On Windows, the installation takes a few minutes, while on Linux and macOS, it completes in under 30 seconds.
 
 2. **Use the package**
    If you continue right after step 1, you can use the tool and jump right in.
@@ -100,6 +102,8 @@ resmetric-cli --workflow
 ```
 
 Then, try the examples (below).
+
+> **Tip for Reviewers**: Jump to [Use as CLI tool section](#use-as-cli-tool)
 
 ## Module Usage
 ### Importing the Module
@@ -328,6 +332,12 @@ You can see annotated bars. They have the same acronyms as types above.
 ```bash
 resmetric-cli --lin-reg --lin-reg-dips --dip-auc --irm ./fig.json
 ```
+
+> **Tip for Reviewers**: Duplicate the CLI session, activate again the venv (as shown in the installation section)
+> and let this run in parallel as this will take ~20 min (cf. section Comment on execution times).
+> Same applies to example 4b so go ahead and start it right away. If that is too long, see the `example/plots` folder
+
+
 Before we start with the example, some foundations:
 The biggest problem is that in a lot of setups, we do not have the exact times, when a disruption happened and therefore
 where start and end the measurement is. If you have them though (through other priors or because you ran a controlled
@@ -381,6 +391,9 @@ resmetric-cli --lin-reg --lin-reg-dips --bars --calc-res-over-time ./fig.json
 In this result, the green trace just has one dip and therefore only one measure for a metric. Hence, &alpha;_u cannot
 be calculated and is also not displayed.
 
+> **Tip for Reviewers**: Duplicate the CLI session, activate again the venv (as shown in the installation section)
+> and let this run in parallel as this will take ~20 min (cf. section Comment on execution times).
+> If that is too long, see the `example/plots` folder
 
 ## Comment on execution times
 The calculations for the linear regression (`--lin-reg --`) take some minutes.

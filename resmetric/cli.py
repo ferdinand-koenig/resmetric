@@ -82,7 +82,7 @@ def print_workflow():
     │ --dips                           │ │                         quotient for every resilience │ 
     │ --drawdowns_traces               │ │                         metric of this track          │ 
     │ --drawdowns_shapes               │ │                                                       │ 
-    | --lin-reg THRESH (Cf. help page) | |                                                       |
+    │ --lin-reg THRESH (Cf. help page) │ │                                                       │
     └──────────────┬───────────────────┘ └──────────────────────────┬────────────────────────────┘ 
                    └────────────────────┬───────────────────────────┘                              
                                         ▼                                                          
