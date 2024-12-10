@@ -390,13 +390,12 @@ takes $\mathcal{O}(tN^3 + tMN^2)$ (fitting + prediction), where $N$ are the samp
 $M$ is the size of the search space (linear regression will have $m \in [1, M]$ segments;  
 the default for the upper bound $M$ is arbitrarily set to 20).  
 $t = 1.5 \cdot M \implies t \in \mathcal{O}(M)$ is the number of iterations (chosen arbitrarily).  
-Thus, $\mathcal{O}(MN^3 + M^2N^2)$.  
-
+Thus, $\mathcal{O}(MN^3 + M^2N^2)$.
 As $M$ is user-set and small, it can be considered constant. This means the required time grows cubic to the  
 observations: $\mathcal{O}(N^3)$.  
 
-Threshold-based is $\mathcal{O}(N)$. The Max Dips algorithm has a time complexity of $\mathcal{O}(N + k^2)$,  
-where $k$ is the number of detected peaks within the series. Since data is noisy ( $k \in \mathcal{O}(N)$ ),  
+Threshold-based is $\mathcal{O}(N)$. The Max Dips algorithm has a time complexity of $\mathcal{O}(N + k^2)$,
+where $k$ is the number of detected peaks within the series. Since data is noisy ( $k \in \mathcal{O}(N)$ ),
 one can assume $\mathcal{O}(N^2)$. 
 
 ## Assumptions
