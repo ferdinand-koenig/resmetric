@@ -385,16 +385,17 @@ Threshold Dips and Max Dips take $\sim \frac{3}{4}s$ per series. (Both measured 
 meaning from command to plot.) Conclusively, in our example, the linear regression dips algorithm is 400 times slower.
 Moreover, the calculation time grows faster (cubical, instead of linear and quadratic):
 
-The linear regression uses Bayesian Optimization using Gaussian Processes and  
+The linear regression uses Bayesian Optimization using Gaussian Processes and
 takes $\mathcal{O}(tN^3 + tMN^2)$ (fitting + prediction), where $N$ are the samples (data points in a time series),  
 $M$ is the size of the search space (linear regression will have $m \in [1, M]$ segments;  
 the default for the upper bound $M$ is arbitrarily set to 20).  
 $t = 1.5 \cdot M \implies t \in \mathcal{O}(M)$ is the number of iterations (chosen arbitrarily).  
 Thus, $\mathcal{O}(MN^3 + M^2N^2)$.
-As $M$ is user-set and small, it can be considered constant. This means the required time grows cubic to the  
+As $M$ is user-set and small, it can be considered constant. This means the required time grows cubic to the
 observations: $\mathcal{O}(N^3)$.  
 
-Threshold-based is $\mathcal{O}(N)$. The Max Dips algorithm has a time complexity of $\mathcal{O}(N + k^2)$,
+Threshold-based is in $\mathcal{O}(N)$.
+The Max Dips algorithm has a time complexity of $\mathcal{O}(N + k^2)$,
 where $k$ is the number of detected peaks within the series. Since data is noisy ( $k \in \mathcal{O}(N)$ ),
 one can assume $\mathcal{O}(N^2)$. 
 
