@@ -93,13 +93,14 @@ def create_plot_from_data(json_str, **kwargs):
 
         - include_dip_auc (bool): Include AUC bars for the AUC of one maximal dip
           (AUC devided by the length of the time frame)
-        - include_bars (bool): Include bars for robustness, recovery and recovery time.
-        - include_gr (bool): Include the Integrated Resilience Metric
+        - include_bars (bool): Include bars for robustness, recovery level and recovery time.
+        - include_irm (bool): Include the Integrated Resilience Metric
           (cf. Sansavini, https://doi.org/10.1007/978-94-024-1123-2_6, Chapter 6, formula 6.12
           formula fixed to ((TAPL +1) ** -1)) cf. artefact publication)
           Requires kwarg recovery_algorithm='recovery_ability'.
-        - recovery_algorithm (str or None): Decides the recovery algorithm. Can either be 'adaptive_capacity' (default)
-          or 'recovery_ability'. The first one is the ratio of new to prior steady state's value (Q(t_ns) / Q(t_0)).
+        - recovery_algorithm (str or None): Decides the recovery level algorithm.
+          Can either be 'adaptive_capacity' (default) or 'recovery_ability'.
+          The first one is the ratio of new to prior steady state's value (Q(t_ns) / Q(t_0)).
           The last one is abs((Q(t_ns) - Q(t_r))/ (Q(t_0) - Q(t_r)))
           where Q(t_r) is the local minimum within a dip (Robustness).
 
@@ -123,10 +124,10 @@ def create_plot_from_data(json_str, **kwargs):
     dip_detection_algorithm = kwargs.get('dip_detection_algorithm', None)
     recovery_algorithm = kwargs.get('recovery_algorithm', 'adaptive_capacity')
 
-    # # Validate the include_gr parameter
-    # if kwargs.get('include_gr') and recovery_algorithm != 'recovery_ability':
+    # # Validate the include_irm parameter
+    # if kwargs.get('include_irm') and recovery_algorithm != 'recovery_ability':
     #     raise ValueError(
-    #         "The 'include_gr' option requires the 'recovery_algorithm' to be set to 'recovery_ability'. "
+    #         "The 'include_irm' option requires the 'recovery_algorithm' to be set to 'recovery_ability'. "
     #         "Please set 'recovery_algorithm' to 'recovery_ability' to include the Integrated Resilience Metric."
     #     )
 
@@ -149,7 +150,7 @@ def create_plot_from_data(json_str, **kwargs):
     lin_reg_traces = []
     antifrag_diff_qu_traces = []
     dip_auc_bars = []
-    gr_bars = []
+    irm_bars = []
 
     # Retrieve optional arguments with defaults
     threshold = kwargs.get('threshold', 80)
@@ -429,7 +430,7 @@ def create_plot_from_data(json_str, **kwargs):
 
             ################################################
 
-        if (kwargs.get('include_bars') or kwargs.get('include_dip_auc') or kwargs.get('include_gr')
+        if (kwargs.get('include_bars') or kwargs.get('include_dip_auc') or kwargs.get('include_irm')
                 or dip_detection_algorithm):
             if not dip_detection_algorithm:
                 dip_detection_algorithm = 'max_dips'
@@ -453,6 +454,8 @@ def create_plot_from_data(json_str, **kwargs):
                      for i in range(len(filtered_segments) - 1)]
                 # Accommodate for two segments making one steady state
                 max_dips = [dip for dip in max_dips if dip[0] != dip[1]]
+            else:
+                raise NotImplementedError(f"The dip detection algorithm '{dip_detection_algorithm}' is not implemented")
 
             # For a dip, get the maximal draw down (1- Robustness) Information and Recovery Information
             # Both infos are used later for adding the bars
@@ -522,7 +525,7 @@ def create_plot_from_data(json_str, **kwargs):
                         y=[recovery['line'][0][1], recovery['line'][1][1]],
                         mode='lines',
                         line=dict(dash='dot', color=fig.layout.template.layout.colorway[i]),
-                        name=f'Recovery Line {s.name}',
+                        name=f'Recovery Level Line {s.name}',
                         legendgroup=f'Max Dips - {s.name}',
                     )
                 )
@@ -585,15 +588,15 @@ def create_plot_from_data(json_str, **kwargs):
                         )
                     )
             ###############
-            # [T-Dip] Integrated Resilience Metric (IRM) GR
-            if kwargs.get('include_gr'):
-                gr = get_max_dip_integrated_resilience_metric(y_values, max_dips)
-                assert set(max_dips) == set(gr.keys()), "Keys (Dips) do no match"
-                for dip, gr_value in gr.items():
-                    gr_bars.append(
+            # [T-Dip] Integrated Resilience Metric (IRM)
+            if kwargs.get('include_irm'):
+                irm = get_max_dip_integrated_resilience_metric(y_values, max_dips)
+                assert set(max_dips) == set(irm.keys()), "Keys (Dips) do no match"
+                for dip, irm_value in irm.items():
+                    irm_bars.append(
                         go.Bar(
                             x=[dip[1]],
-                            y=[gr_value],
+                            y=[irm_value],
                             width=1,
                             marker=dict(color=fig.layout.template.layout.colorway[i],
                                         line=dict(width=3,
@@ -601,28 +604,28 @@ def create_plot_from_data(json_str, **kwargs):
                                                   )
                                         ),
                             opacity=0.5,
-                            text="GR",
+                            text="IRM",
                             textfont=BAR_TEXT_FONT,
                             textposition='outside',
                             textangle=90,
-                            name=f'IRM GR - {s.name}',
-                            hovertext=f'IRM GR {max_dip} - {s.name}',
+                            name=f'IRM - {s.name}',
+                            hovertext=f'IRM {max_dip} - {s.name}',
                             hoverinfo='x+y+text',  # Show x, y, and hover text
-                            legendgroup=f'[T-Dip] IRM GR - {s.name}',
+                            legendgroup=f'[T-Dip] IRM - {s.name}',
                             yaxis='y6'
                         )
                     )
-                    if not gr_value == 0:
+                    if not irm_value == 0:
                         continue
-                    gr_bars.append(
+                    irm_bars.append(
                         go.Scatter(
                             x=[dip[1]],
                             y=[0],  # Match the zero value
                             mode='markers',
                             marker=dict(size=10, color='rgba(0,0,0,0)'),  # Invisible marker
-                            hovertext=[f'IRM GR=0 {max_dip} - {s.name}'],  # Custom hovertext
+                            hovertext=[f'IRM=0 {max_dip} - {s.name}'],  # Custom hovertext
                             hoverinfo='text',  # Only show hovertext
-                            legendgroup=f'[T-Dip] IRM GR - {s.name}',
+                            legendgroup=f'[T-Dip] IRM - {s.name}',
                             yaxis='y6',
                         )
                     )
@@ -644,11 +647,11 @@ def create_plot_from_data(json_str, **kwargs):
                     for dip, auc in dip_auc_info.items():
                         dips_resilience[dip]['auc'] = auc
 
-                if kwargs.get('include_gr'):
-                    for dip, gr_value in gr.items():
-                        dips_resilience[dip]['IRM GR'] = gr_value
+                if kwargs.get('include_irm'):
+                    for dip, irm_value in irm.items():
+                        dips_resilience[dip]['IRM'] = irm_value
 
-                if kwargs.get('include_bars') or kwargs.get('include_dip_auc') + kwargs.get('include_gr') > 1:
+                if kwargs.get('include_bars') or kwargs.get('include_dip_auc') + kwargs.get('include_irm') > 1:
                     for dip in max_dips:
                         dips_resilience[dip]['overall'] = np.mean(list(dips_resilience[dip].values()))
 
@@ -717,7 +720,7 @@ def create_plot_from_data(json_str, **kwargs):
             rangemode="tozero",
         ),
         yaxis6=dict(
-            title='Integrated Resilience Metric (IRM) GR',
+            title='Integrated Resilience Metric (IRM)',
             overlaying='y',
             anchor='free',
             side='right',
@@ -754,8 +757,8 @@ def create_plot_from_data(json_str, **kwargs):
         all_traces += lin_reg_traces
     if kwargs.get('include_dip_auc'):
         all_traces += dip_auc_bars
-    if kwargs.get('include_gr'):
-        all_traces += gr_bars
+    if kwargs.get('include_irm'):
+        all_traces += irm_bars
     if kwargs.get('calc_res_over_time'):
         all_traces += antifrag_diff_qu_traces
 

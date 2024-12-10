@@ -154,7 +154,7 @@ def create_plot_from_data(json_str, **kwargs):
 - **`include_max_dip_auc`** (`bool`): Include AUC bars for the AUC of one maximal dip
   (AUC devided by the length of the time frame)
 - **`include_bars`** (`bool`): Include bars for MDD and recovery.
-- **`include_gr`** (`bool`): Include the Integrated Resilience Metric
+- **`include_irm`** (`bool`): Include the Integrated Resilience Metric
   (cf. Sansavini, https://doi.org/10.1007/978-94-024-1123-2_6, Chapter 6, formula 6.12).
   Requires kwarg `recovery_algorithm='recovery_ability'`.
 - **`recovery_algorithm`** (`str` or `None`): Decides the recovery algorithm. Can either be `adaptive_capacity` (default)
@@ -309,7 +309,7 @@ You can see annotated bars. They have the same acronyms as types above.
 #### Example 3 - Linear Regression with auto segmentation
 ![lg.png](/example/lg.png)
 ```bash
-resmetric-cli --lin-reg --lin-reg-dips --dip-auc --gr ./example/fig.json
+resmetric-cli --lin-reg --lin-reg-dips --dip-auc --irm ./example/fig.json
 ```
 Before we start with the example, some foundations:
 The biggest problem is that in a lot of setups, we do not have the exact times, when a disruption happened and therefore
@@ -362,7 +362,7 @@ degree of antifragility which is marked by the little diamond.
 resmetric-cli --lin-reg --lin-reg-dips --bars --calc-res-over-time ./example/fig.json
 ```
 In this result, the green trace just has one dip and therefore only one measure for a metric. Hence, &alpha;_u cannot
-be calculated and is also not dsplayed.
+be calculated and is also not displayed.
 
 
 ## Comment on execution times
