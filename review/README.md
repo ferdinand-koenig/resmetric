@@ -13,11 +13,13 @@ Plotly plots to visualize and analyze data more effectively. Therefore,
 different resilience metrics can be explored. In addition,
 the `metrics` submodule provides functions that can calculate the metrics individually!
 
-> **Note**: This README corresponds to the anonymized version, created for a double-blind review process.
+> **Note for Reviewers**: This README corresponds to the anonymized version, created for a double-blind review process.
 > Any occurrences of "ANONYMIZED" in the text indicate that certain information or links have been removed to maintain
 > anonymity. The full details will be restored in the version prepared for publication.
 
-> **Note**: This README has adapted examples to work when downloading the review folder.
+> **Note for Reviewers**: This README has adapted examples to work when downloading the review folder. Further, the images are
+> not included in the download. Please view via https://anonymous.4open.science/r/resmetric/README.md or find them
+> in the `/example `folder.
 
 ## Key Features
 - **Separation of Dip-Agnostic ([T-Ag]) and Dip-Dependent Metrics ([T-Dip])**: Analyze your performance graph w.r.t. resilience and 'antifragility' (See *Getting Started* Section)
@@ -271,7 +273,7 @@ To inspect the input that is provided to our tool, run
 resmetric-cli ./fig.json
 ```
 This is the input we are providing the tool:
-![img.png](example/fig.png)
+![img.png](/example/fig.png)
 
 **Are these types of pictures not the thing you are looking for? Execution is not possible or taking too long?**
 In `/example/plots/`, you can find the interactive HTML files and print-ready versions of the plots
@@ -384,7 +386,7 @@ Imagine that we take an overall resilience metric by taking the mean of each u. 
 degree of antifragility which is marked by the little diamond.
 
 ##### 4b) Using linear regression dips
-![antifrag-lg.png](example/antifrag-lg.png)
+![antifrag-lg.png](/example/antifrag-lg.png)
 ```bash
 resmetric-cli --lin-reg --lin-reg-dips --bars --calc-res-over-time ./fig.json
 ```

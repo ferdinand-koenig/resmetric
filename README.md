@@ -13,11 +13,11 @@ Plotly plots to visualize and analyze data more effectively. Therefore,
 different resilience metrics can be explored. In addition,
 the `metrics` submodule provides functions that can calculate the metrics individually!
 
-> **Note**: This README corresponds to the anonymized version, created for a double-blind review process.
+> **Note for Reviewers**: This README corresponds to the anonymized version, created for a double-blind review process.
 > Any occurrences of "ANONYMIZED" in the text indicate that certain information or links have been removed to maintain
 > anonymity. The full details will be restored in the version prepared for publication.
 
-> **Note for Reviewers**: For the best experience, please download the `review.zip` archive.
+> **Note for Reviewers**: You can also download the `review.zip` archive for the reviewing procedure.
 > It contains all the essential files, along with a README that has adjusted file paths to make copying
 > and pasting the commands easy.
 
