@@ -39,6 +39,10 @@ Having trouble installing it? Please check the installation note in the [appendi
 ### Step-by-Step Installation and Setup
 Go to a folder where you want to place the installation and download the wheel (`.whl` file)
 
+> **Note for Reviewers**: The wheel file is located in the `/review` folder or within the `review.zip` bundle archive.  
+> In the future, the artifact will be made available via PyPI (eliminating the need for manual download of the wheel)
+> and through the release section of our GitHub repository.
+
 0. **Get Python** (Only if you do not have Python `>= 3.8`)
    
    You should download and install Python from [download](https://www.python.org/downloads/). Go for the latest version, but everything `>= 3.8` will be fine.
