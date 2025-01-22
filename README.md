@@ -272,13 +272,13 @@ To inspect the input that is provided to our tool, run
 resmetric-cli ./example/fig.json
 ```
 This is the input we are providing the tool:
-![img.png](example/fig.png)
+![fig.png I Check Github repo or source folder named example](https://github.com/ferdinand-koenig/resmetric/blob/stable/example/fig.png)
 
 **Are these types of pictures not the thing you are looking for? Execution is not possible or taking too long?**
 In `/example/plots/`, you can find the interactive HTML files and print-ready versions of the plots .
 
 #### Example 1 - Dip-Agnostic Resilience Metrics (AUC, Threshold)
-![auc-count-time.png](example/auc-count-time.png)
+![auc-count-time.png I Check Github repo or source folder named example](https://github.com/ferdinand-koenig/resmetric/blob/stable/example/auc-count-time.png)
 
 This example walks you through the most important dip-agnostic Resilience Metrics.
 1. Run
@@ -308,7 +308,7 @@ and recovered). A threshold is utilized if there is a defined or meaningful mini
 
 
 #### Example 2 - Robustness, Recovery Rate, and Recovery Ability
-![max_dips-bars.png](example/max_dips-bars.png)
+![max_dips-bars.png I Check Github repo or source folder named example](https://github.com/ferdinand-koenig/resmetric/blob/stable/example/max_dips-bars.png)
 
 This example introduces Robustness (R), Recovery Rate (RR), and Adaptive Capacity (AC) as the first dip-dependent
 metrics. As a dip detection, we use maxima.
@@ -328,7 +328,7 @@ You can see annotated bars. They have the same acronyms as types above.
 
 
 #### Example 3 - Linear Regression with auto segmentation
-![lg.png](example/lg.png)
+![lg.png I Check Github repo or source folder named example](https://github.com/ferdinand-koenig/resmetric/blob/stable/example/lg.png)
 ```bash
 resmetric-cli --lin-reg --lin-reg-dips --dip-auc --irm ./example/fig.json
 ```
@@ -367,7 +367,7 @@ in turn depends on the Dip Detection algorithm. So, be cautious with your assump
 demonstrate the differences.
 
 ##### 4a) Using Max Dips algorithm
-![antifrag-max-dips.png](example/antifrag-max-dips.png)
+![antifrag-max-dips.png I Check Github repo or source folder named example](https://github.com/ferdinand-koenig/resmetric/blob/stable/example/antifrag-max-dips.png)
 ```bash
 resmetric-cli --max-dips --bars --calc-res-over-time ./example/fig.json
 ```
@@ -378,7 +378,7 @@ Imagine that we take an overall resilience metric by taking the mean of each u. 
 degree of antifragility which is marked by the little diamond.
 
 ##### 4b) Using linear regression dips
-![antifrag-lg.png](example/antifrag-lg.png)
+![antifrag-lg.png I Check Github repo or source folder named example](https://github.com/ferdinand-koenig/resmetric/blob/stable/example/antifrag-lg.png)
 ```bash
 resmetric-cli --lin-reg --lin-reg-dips --bars --calc-res-over-time ./example/fig.json
 ```
