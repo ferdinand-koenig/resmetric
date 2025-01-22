@@ -13,6 +13,14 @@ Plotly plots to visualize and analyze data more effectively. Therefore,
 different resilience metrics can be explored. In addition,
 the `metrics` submodule provides functions that can calculate the metrics individually!
 
+## Links
+- 🐍 PyPI: [pypi.org/project/resmetric/](https://pypi.org/project/resmetric/)
+- 🛠 GitHub Repository: [github.com/ferdinand-koenig/resmetric](https://github.com/ferdinand-koenig/resmetric)
+- 📄 arXiv Preprint: _to be defined_
+- 📘 SEAMS Proceedings: _to be published_
+
+Please cite the associated paper when using `ResMetric`.
+
 ## Key Features
 - **Separation of Dip-Agnostic ([T-Ag]) and Dip-Dependent Metrics ([T-Dip])**: Analyze your performance graph w.r.t. resilience and 'antifragility' (See *Getting Started* Section)
 - **Dip-Agnostic Metrics** do not depend on where a disruption starts and the system is fully recovered. (AUC, count and time below a threshold, etc)
@@ -24,12 +32,15 @@ the `metrics` submodule provides functions that can calculate the metrics indivi
 ## Installation and Setup
 The following guide is for beginners. If you are not a beginner, feel free to skip the installation instructions!
 
-If you need the wheel file, you can find it in the [releases section](https://github.com/ferdinand-koenig/resmetric/releases).
+If you need the wheel file, you can find it in the
+[releases section](https://github.com/ferdinand-koenig/resmetric/releases) of the official repository on [GitHub](https://github.com/ferdinand-koenig/resmetric).
+This is generally not required as the wheel is available via the standard Python distribution:
+[ResMetric on PyPi](https://pypi.org/project/resmetric/).
 
 Having trouble installing it? Please check the installation note in the [appendix](#appendix) of this README.
 
 ### Step-by-Step Installation and Setup
-Go to a folder where you want to place the installation and download the wheel (`.whl` file)
+Go to a folder where you want to place the installation.
 
 0. **Get Python** (Only if you do not have Python `>= 3.8`)
    
@@ -43,17 +54,15 @@ Go to a folder where you want to place the installation and download the wheel (
         python3 -m venv .venv
         source .venv/bin/activate
         python3 -m pip install --upgrade pip
-        python3 -m pip install resmetric-*.whl
+        python3 -m pip install resmetric
         ```
     - **Windows:**
         ```cmd
         py -m venv .venv
         .venv\Scripts\activate
         py -m pip install --upgrade pip
-        py -m pip install resmetric-1.0.0-py3-none-any.whl
+        py -m pip install resmetric
         ```
-        Please ensure you use the correct filename in the last command (e.g., `resmetric-1.0.0-py3-none-any.whl`).
-
         On Windows, the installation takes a few minutes, while on Linux and macOS, it completes in under 30 seconds.
 
 2. **Use the package**
