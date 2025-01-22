@@ -29,7 +29,7 @@ jobs:
 
     - name: Upload to Test PyPI
       run: |
-        twine upload --repository testpypi dist/*  # Upload to Test PyPI for testing
+        twine upload --verbose --repository testpypi dist/*  # Upload to Test PyPI for testing
       env:
         TWINE_USERNAME: ${{ secrets.TEST_PYPI_USERNAME }}  # Use secret for username
         TWINE_PASSWORD: ${{ secrets.TEST_PYPI_PASSWORD }}  # Use secret for password (API token)
