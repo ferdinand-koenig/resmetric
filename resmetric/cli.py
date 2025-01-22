@@ -68,7 +68,7 @@ def print_workflow():
     ┌──────────────────────────────────┐ ┌───────────────────────────────────────────────────────┐ 
     │    Calculate Resilience          │ │   Calculate Resilience  (per Dip)                     │ 
     ├──────────────────────────────────┤ ├───────────────────────────────────────────────────────┤ 
-    │ --auc    AUC devided by length   │ │ --dip-auc  AUC per dip (divided by length)            │ 
+    │ --auc    AUC devided by length   │ │ --dip-auc      AUC per dip (divided by length)        │ 
     │          of time frame and       │ │ --bars         Robustness, Recovery Level,            │ 
     │          weighted by kernel      │ │                and Recovery Rate                      │ 
     │ --count  How many times dropped  │ │ --irm          Integrated Resilience Metric (IRM)     │ 
