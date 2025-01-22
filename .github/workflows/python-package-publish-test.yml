@@ -3,7 +3,12 @@ name: Publish to Test PyPI
 on:
   push:
     branches:
-      - test-stable  # Trigger on test-stable branch pushes
+      - test-stable
+  pull_request:
+    branches:
+      - test-stable
+    types:
+      - closed  # Trigger when the PR is closed (merged)
 
 jobs:
   build:
