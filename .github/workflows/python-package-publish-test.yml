@@ -4,11 +4,6 @@ on:
   push:
     branches:
       - test-stable
-  pull_request:
-    branches:
-      - test-stable
-    types:
-      - closed  # Trigger when the PR is closed (merged)
 
 jobs:
   build:
