@@ -21,7 +21,8 @@ the `metrics` submodule provides functions that can calculate the metrics indivi
 - 📄 arXiv Preprint: _to be defined_
 - 📘 SEAMS Proceedings: _to be published_
 
-**Please cite both the associated paper and the artefact when using `ResMetric`.**
+**Please cite both the associated paper and the artefact when using `ResMetric`.** The relevant BibTeX entries can be
+found in the [appendix](#appendix) of this README.
 
 ## Key Features
 - **Separation of Dip-Agnostic ([T-Ag]) and Dip-Dependent Metrics ([T-Dip])**: Analyze your performance graph w.r.t. resilience and 'antifragility' (See *Getting Started* Section)
@@ -485,4 +486,17 @@ The virtual environment fixes this issue.
    Make sure to use the right filename for the wheel file.
 3. **You are all set up!**
 
-
+### Citation
+Please cite both the associated paper and the ResMetric artifact when using the software.
+```bibtex
+@software{koenig_resmetric_artefact_2025,
+  author       = {Koenig, Ferdinand},
+  title        = {ResMetric: A Python Module for Visualizing Resilience and Antifragility},
+  month        = jan,
+  year         = 2025,
+  publisher    = {Zenodo},
+  doi          = {10.5281/zenodo.14724651},
+  url          = {https://doi.org/10.5281/zenodo.14724651},
+  copyright    = {CC BY-NC-SA 4.0}
+}
+```
