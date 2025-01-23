@@ -250,7 +250,7 @@ print("Figure saved as 'plot.html'")
 ### Use as CLI tool
 *Note: The wheel (`.whl`) does not include example material.*
 
-To get started, you can download the example data `fig.json` [here](https://github.com/ferdinand-koenig/resmetric/blob/main/example/fig.json). 
+To get started, you can download the example data `fig.json` [here](https://github.com/ferdinand-koenig/resmetric/blob/release/example/fig.json). 
 Please place the downloaded file in a subdirectory called `example` to use the examples as provided.
 
 To illustrate the tool's capabilities with relevant data, we utilized the classification accuracy graph presented by
@@ -308,6 +308,11 @@ Now, you see the image of above. You might also set the threshold by yourself wi
 Metrics of this type are used when we do not care or cannot say when a dip starts (disruption) and ends (system adapted
 and recovered). A threshold is utilized if there is a defined or meaningful minimum tolerable performance.
 
+If you want to explicitly save the plot as an HTML file, you can use `--save` followed by the desired path and filename.
+For example:
+```bash
+resmetric-cli --auc --count --time --save example-1-plot.html ./example/fig.json
+```
 
 #### Example 2 - Robustness, Recovery Rate, and Recovery Ability
 ![max_dips-bars.png I Check Github repo or source folder named example](https://github.com/ferdinand-koenig/resmetric/blob/release/example/max_dips-bars.png?raw=True)
