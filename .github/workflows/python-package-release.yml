@@ -6,23 +6,6 @@ on:
       - release
 
 jobs:
-  create-tag:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Get version from setup.py
-        id: get_version
-        run: |
-          version=$(python setup.py --version)
-          echo "VERSION=$version" >> $GITHUB_ENV
-
-      - name: Create tag
-        run: |
-          git tag $VERSION
-          git push origin $VERSION  # Push the tag to the remote repository
-
   build:
     name: Build distribution 📦
     # if: startsWith(github.ref, 'refs/tags/')  # only build on tag pushes
@@ -80,7 +63,6 @@ jobs:
       and upload them to GitHub Release
     needs:
     - publish-to-pypi
-    - create-tag
     runs-on: ubuntu-latest
 
     permissions:
@@ -88,6 +70,19 @@ jobs:
       id-token: write  # IMPORTANT: mandatory for sigstore
 
     steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Get version from setup.py
+      id: get_version
+      run: |
+        version=$(python setup.py --version)
+        echo "VERSION=$version" >> $GITHUB_ENV
+
+    - name: Create tag
+      run: |
+        git tag $VERSION
+        git push origin $VERSION  # Push the tag to the remote repository
     - name: Download all the dists
       uses: actions/download-artifact@v4
       with:
