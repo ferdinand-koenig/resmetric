@@ -111,6 +111,7 @@ jobs:
     - name: Create GitHub Release
       env:
         GITHUB_TOKEN: ${{ github.token }}
+        VERSION: ${{ env.VERSION }}  # Ensure the VERSION is available here as well
       run: >-
         gh release create
         "$GITHUB_REF_NAME"
