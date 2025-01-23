@@ -497,6 +497,6 @@ Please cite both the associated paper and the ResMetric artifact when using the 
   publisher    = {Zenodo},
   doi          = {10.5281/zenodo.14724651},
   url          = {https://doi.org/10.5281/zenodo.14724651},
-  copyright    = {CC BY-NC-SA 4.0}
+  license      = {CC BY-NC-SA 4.0}
 }
 ```
