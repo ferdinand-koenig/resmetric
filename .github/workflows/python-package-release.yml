@@ -114,8 +114,7 @@ jobs:
         gh release create
         "$GITHUB_REF_NAME"
         --repo "$GITHUB_REPOSITORY"
-        --notes |
-          Install via `pip install resmetric==${{ env.CLEANED_VERSION }}`. See README.md or `resmetric-cli -h`.
+        --notes 'Install via `pip install resmetric==${{ env.CLEANED_VERSION }}`. See README.md or `resmetric-cli -h`.'
     - name: Upload artifact signatures to GitHub Release
       env:
         GITHUB_TOKEN: ${{ github.token }}
