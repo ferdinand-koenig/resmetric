@@ -1,4 +1,5 @@
 # ResMetric
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14724651.svg)](https://doi.org/10.5281/zenodo.14724651)
 
 `ResMetric` is a Python module designed to enhance Plotly figures
 with resilience-related metrics. This comes in handy if you want
@@ -16,10 +17,11 @@ the `metrics` submodule provides functions that can calculate the metrics indivi
 ## Links
 - 🐍 PyPI: [pypi.org/project/resmetric/](https://pypi.org/project/resmetric/)
 - 🛠 GitHub Repository: [github.com/ferdinand-koenig/resmetric](https://github.com/ferdinand-koenig/resmetric)
+- 🧾 Artefact / Code DOI: [doi.org/10.5281/zenodo.14724651](https://doi.org/10.5281/zenodo.14724651)
 - 📄 arXiv Preprint: _to be defined_
 - 📘 SEAMS Proceedings: _to be published_
 
-Please cite the associated paper when using `ResMetric`.
+**Please cite both the associated paper and the artefact when using `ResMetric`.**
 
 ## Key Features
 - **Separation of Dip-Agnostic ([T-Ag]) and Dip-Dependent Metrics ([T-Dip])**: Analyze your performance graph w.r.t. resilience and 'antifragility' (See *Getting Started* Section)
@@ -248,7 +250,7 @@ print("Figure saved as 'plot.html'")
 ### Use as CLI tool
 *Note: The wheel (`.whl`) does not include example material.*
 
-To get started, you can download the example data `fig.json` [here](https://github.com/ferdinand-koenig/resmetric/blob/main/example/fig.json). 
+To get started, you can download the example data `fig.json` [here](https://github.com/ferdinand-koenig/resmetric/blob/release/example/fig.json). 
 Please place the downloaded file in a subdirectory called `example` to use the examples as provided.
 
 To illustrate the tool's capabilities with relevant data, we utilized the classification accuracy graph presented by
@@ -306,6 +308,11 @@ Now, you see the image of above. You might also set the threshold by yourself wi
 Metrics of this type are used when we do not care or cannot say when a dip starts (disruption) and ends (system adapted
 and recovered). A threshold is utilized if there is a defined or meaningful minimum tolerable performance.
 
+If you want to explicitly save the plot as an HTML file, you can use `--save` followed by the desired path and filename.
+For example:
+```bash
+resmetric-cli --auc --count --time --save example-1-plot.html ./example/fig.json
+```
 
 #### Example 2 - Robustness, Recovery Rate, and Recovery Ability
 ![max_dips-bars.png I Check Github repo or source folder named example](https://github.com/ferdinand-koenig/resmetric/blob/release/example/max_dips-bars.png?raw=True)

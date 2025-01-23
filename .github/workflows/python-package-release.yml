@@ -4,33 +4,8 @@ on:
   push:
     branches:
       - release
-  pull_request:
-    branches:
-      - release
-    types:
-      - closed  # Trigger when the PR is closed (merged)
 
 jobs:
-  create-tag:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Get version from setup.py
-        id: get_version
-        run: |
-          version=$(python setup.py --version)
-          # Clean the version to remove any hyphen in pre-release versions
-          cleaned_version=$(echo $version | sed 's/-rc//g' | sed 's/\./-/g')
-          echo "CLEANED_VERSION=$cleaned_version" >> $GITHUB_ENV
-          echo "VERSION=$version" >> $GITHUB_ENV
-
-      - name: Create tag
-        run: |
-          git tag $VERSION
-          git push origin $VERSION  # Push the tag to the remote repository
-
   build:
     name: Build distribution 📦
     # if: startsWith(github.ref, 'refs/tags/')  # only build on tag pushes
@@ -79,6 +54,8 @@ jobs:
         path: dist/
     - name: Publish distribution 📦 to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        verbose: true
 
   github-release:
     name: >-
@@ -86,7 +63,6 @@ jobs:
       and upload them to GitHub Release
     needs:
     - publish-to-pypi
-    - create-tag
     runs-on: ubuntu-latest
 
     permissions:
@@ -94,6 +70,19 @@ jobs:
       id-token: write  # IMPORTANT: mandatory for sigstore
 
     steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Get version from setup.py
+      id: get_version
+      run: |
+        version=$(python setup.py --version)
+        echo "VERSION=$version" >> $GITHUB_ENV
+
+#    - name: Create tag
+#      run: |
+#        git tag $VERSION
+#        git push origin $VERSION  # Push the tag to the remote repository
     - name: Download all the dists
       uses: actions/download-artifact@v4
       with:
@@ -105,15 +94,21 @@ jobs:
         inputs: >-
           ./dist/*.tar.gz
           ./dist/*.whl
+    - name: Debug VERSION environment variable
+      run: echo VERSION=${{ env.VERSION }}
+    - name: Create ZIP of distribution files
+      run: |
+        cd dist
+        zip -r resmetric-${{ env.VERSION }}-bundle.zip *
     - name: Create GitHub Release
       env:
         GITHUB_TOKEN: ${{ github.token }}
+        VERSION: ${{ env.VERSION }}  # Ensure the VERSION is available here as well
       run: >-
-        gh release create
-        "$GITHUB_REF_NAME"
-        --repo "$GITHUB_REPOSITORY"
-        --notes |
-          Install via `pip install resmetric==${{ env.CLEANED_VERSION }}`. See README.md or `resmetric-cli -h`.
+        gh release create "$VERSION" \
+          --repo "$GITHUB_REPOSITORY" \
+          --title "resmetric ${{ env.VERSION }}" \
+          --notes "Install via \`pip install resmetric==${{ env.VERSION }}\`. See README.md or \`resmetric-cli -h\`."
     - name: Upload artifact signatures to GitHub Release
       env:
         GITHUB_TOKEN: ${{ github.token }}
@@ -122,5 +117,5 @@ jobs:
       # sigstore-produced signatures and certificates.
       run: >-
         gh release upload
-        "$GITHUB_REF_NAME" dist/**
+        "$VERSION" dist/**
         --repo "$GITHUB_REPOSITORY"
