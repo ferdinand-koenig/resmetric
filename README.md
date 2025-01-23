@@ -21,7 +21,7 @@ the `metrics` submodule provides functions that can calculate the metrics indivi
 - 📄 arXiv Preprint: _to be defined_
 - 📘 SEAMS Proceedings: _to be published_
 
-Please cite the associated paper when using `ResMetric`.
+**Please cite both the associated paper and the artefact when using `ResMetric`.**
 
 ## Key Features
 - **Separation of Dip-Agnostic ([T-Ag]) and Dip-Dependent Metrics ([T-Dip])**: Analyze your performance graph w.r.t. resilience and 'antifragility' (See *Getting Started* Section)
