@@ -21,9 +21,6 @@ jobs:
         id: get_version
         run: |
           version=$(python setup.py --version)
-          # Clean the version to remove any hyphen in pre-release versions
-          cleaned_version=$(echo $version | sed 's/-rc//g' | sed 's/\./-/g')
-          echo "CLEANED_VERSION=$cleaned_version" >> $GITHUB_ENV
           echo "VERSION=$version" >> $GITHUB_ENV
 
       - name: Create tag
@@ -107,6 +104,10 @@ jobs:
         inputs: >-
           ./dist/*.tar.gz
           ./dist/*.whl
+    - name: Create ZIP of distribution files
+      run: |
+        cd dist
+        zip -r "resmetric-${{ env.VERSION }}.zip" *
     - name: Create GitHub Release
       env:
         GITHUB_TOKEN: ${{ github.token }}
@@ -114,7 +115,8 @@ jobs:
         gh release create
         "$GITHUB_REF_NAME"
         --repo "$GITHUB_REPOSITORY"
-        --notes 'Install via `pip install resmetric==${{ env.CLEANED_VERSION }}`. See README.md or `resmetric-cli -h`.'
+        --title "resmetric ${{ env.VERSION }}"
+        --notes "Install via \`pip install resmetric==${{ env.VERSION }}\`. See README.md or \`resmetric-cli -h\`."
     - name: Upload artifact signatures to GitHub Release
       env:
         GITHUB_TOKEN: ${{ github.token }}
