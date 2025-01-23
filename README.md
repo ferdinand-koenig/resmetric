@@ -1,4 +1,5 @@
 # ResMetric
+[![DOI](https://zenodo.org/badge/841442804.svg)](https://doi.org/10.5281/zenodo.14724651)
 
 `ResMetric` is a Python module designed to enhance Plotly figures
 with resilience-related metrics. This comes in handy if you want
@@ -16,6 +17,7 @@ the `metrics` submodule provides functions that can calculate the metrics indivi
 ## Links
 - 🐍 PyPI: [pypi.org/project/resmetric/](https://pypi.org/project/resmetric/)
 - 🛠 GitHub Repository: [github.com/ferdinand-koenig/resmetric](https://github.com/ferdinand-koenig/resmetric)
+- 🧾 Artefact / Code DOI: [doi.org/10.5281/zenodo.14724651](https://doi.org/10.5281/zenodo.14724651)
 - 📄 arXiv Preprint: _to be defined_
 - 📘 SEAMS Proceedings: _to be published_
 
