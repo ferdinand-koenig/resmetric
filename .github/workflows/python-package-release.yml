@@ -4,11 +4,6 @@ on:
   push:
     branches:
       - release
-  pull_request:
-    branches:
-      - release
-    types:
-      - closed  # Trigger when the PR is closed (merged)
 
 jobs:
   create-tag:
@@ -104,10 +99,12 @@ jobs:
         inputs: >-
           ./dist/*.tar.gz
           ./dist/*.whl
+    - name: Debug VERSION environment variable
+      run: echo VERSION=${{ env.VERSION }}
     - name: Create ZIP of distribution files
       run: |
         cd dist
-        zip -r "resmetric-${{ env.VERSION }}.zip" *
+        zip -r resmetric-${{ env.VERSION }}.zip *
     - name: Create GitHub Release
       env:
         GITHUB_TOKEN: ${{ github.token }}
@@ -116,8 +113,8 @@ jobs:
         gh release create
         "$GITHUB_REF_NAME"
         --repo "$GITHUB_REPOSITORY"
-        --title "resmetric ${{ env.VERSION }}"
-        --notes "Install via \`pip install resmetric==${{ env.VERSION }}\`. See README.md or \`resmetric-cli -h\`."
+        --title resmetric ${{ env.VERSION }}
+        --notes Install via \`pip install resmetric==${{ env.VERSION }}\`. See README.md or \`resmetric-cli -h\`.
     - name: Upload artifact signatures to GitHub Release
       env:
         GITHUB_TOKEN: ${{ github.token }}
