@@ -105,11 +105,10 @@ jobs:
         GITHUB_TOKEN: ${{ github.token }}
         VERSION: ${{ env.VERSION }}  # Ensure the VERSION is available here as well
       run: >-
-        gh release create
-        "$GITHUB_REF_NAME"
-        --repo "$GITHUB_REPOSITORY"
-        --title resmetric ${{ env.VERSION }}
-        --notes Install via \`pip install resmetric==${{ env.VERSION }}\`. See README.md or \`resmetric-cli -h\`.
+        gh release create "$GITHUB_REF_NAME" \
+          --repo "$GITHUB_REPOSITORY" \
+          --title "resmetric ${{ env.VERSION }}" \
+          --notes "Install via \`pip install resmetric==${{ env.VERSION }}\`. See README.md or \`resmetric-cli -h\`."
     - name: Upload artifact signatures to GitHub Release
       env:
         GITHUB_TOKEN: ${{ github.token }}
