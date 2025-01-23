@@ -11,7 +11,7 @@ on:
       - closed  # Trigger when the PR is closed (merged)
 
 jobs:
-  create-release:
+  create-tag:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -86,6 +86,7 @@ jobs:
       and upload them to GitHub Release
     needs:
     - publish-to-pypi
+    - create-tag
     runs-on: ubuntu-latest
 
     permissions:
