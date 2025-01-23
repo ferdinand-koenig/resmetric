@@ -99,7 +99,7 @@ jobs:
     - name: Create ZIP of distribution files
       run: |
         cd dist
-        zip -r resmetric-${{ env.VERSION }}.zip *
+        zip -r resmetric-${{ env.VERSION }}-bundle.zip *
     - name: Create GitHub Release
       env:
         GITHUB_TOKEN: ${{ github.token }}
