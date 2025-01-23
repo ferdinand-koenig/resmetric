@@ -480,7 +480,7 @@ The virtual environment fixes this issue.
 2. **Install package via `pipx`**
    Replace `pip` by `pipx` in the installation command. This may look like
    ```bash
-   pipx install resmetric-1.0.0-py3-none-any.whl
+   pipx install resmetric
    ```
    Make sure to use the right filename for the wheel file.
 3. **You are all set up!**
