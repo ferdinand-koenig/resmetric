@@ -1,5 +1,8 @@
 # ResMetric
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14724651.svg)](https://doi.org/10.5281/zenodo.14724651)
+<a href="https://creativecommons.org/licenses/by-nc-sa/4.0/">
+  <img src="https://mirrors.creativecommons.org/presskit/buttons/88x31/png/by-nc-sa.png" width="58"/>
+</a>
 
 `ResMetric` is a Python module designed to enhance Plotly figures
 with resilience-related metrics. This comes in handy if you want
@@ -444,7 +447,11 @@ The associated research paper is a collaborative effort.
 — _Ferdinand Koenig_
 
 ## License
-<p xmlns:cc="http://creativecommons.org/ns#" xmlns:dct="http://purl.org/dc/terms/"><span property="dct:title">ResMetric</span> by <span property="cc:attributionName">Ferdinand Koenig</span> is licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/?ref=chooser-v1" target="_blank" rel="license noopener noreferrer" style="display:inline-block;">CC BY-NC-SA 4.0<img style="height:22px!important;margin-left:3px;vertical-align:text-bottom;" src="https://mirrors.creativecommons.org/presskit/icons/cc.svg?ref=chooser-v1" alt=""><img style="height:22px!important;margin-left:3px;vertical-align:text-bottom;" src="https://mirrors.creativecommons.org/presskit/icons/by.svg?ref=chooser-v1" alt=""><img style="height:22px!important;margin-left:3px;vertical-align:text-bottom;" src="https://mirrors.creativecommons.org/presskit/icons/nc.svg?ref=chooser-v1" alt=""><img style="height:22px!important;margin-left:3px;vertical-align:text-bottom;" src="https://mirrors.creativecommons.org/presskit/icons/sa.svg?ref=chooser-v1" alt=""></a></p>
+<a href="https://creativecommons.org/licenses/by-nc-sa/4.0/">
+  <img src="https://mirrors.creativecommons.org/presskit/buttons/88x31/png/by-nc-sa.png" width="100"/>
+</a>
+
+<p xmlns:cc="http://creativecommons.org/ns#" xmlns:dct="http://purl.org/dc/terms/"><span property="dct:title">ResMetric</span> by <span property="cc:attributionName">Ferdinand Koenig</span> is licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/?ref=chooser-v1" target="_blank" rel="license noopener noreferrer" style="display:inline-block;">CC BY-NC-SA 4.0</a></p>
 
 This license requires that reusers give credit to the creator. It allows reusers to distribute, remix, adapt, and build
 upon the material in any medium or format, for noncommercial purposes only. If others modify or adapt the material,
