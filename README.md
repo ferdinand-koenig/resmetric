@@ -1,5 +1,8 @@
 # ResMetric
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14724651.svg)](https://doi.org/10.5281/zenodo.14724651)
+<a href="https://creativecommons.org/licenses/by-nc-sa/4.0/">
+  <img src="https://mirrors.creativecommons.org/presskit/buttons/88x31/png/by-nc-sa.png" width="58"/>
+</a>
 
 `ResMetric` is a Python module designed to enhance Plotly figures
 with resilience-related metrics. This comes in handy if you want
@@ -18,10 +21,11 @@ the `metrics` submodule provides functions that can calculate the metrics indivi
 - 🐍 PyPI: [pypi.org/project/resmetric/](https://pypi.org/project/resmetric/)
 - 🛠 GitHub Repository: [github.com/ferdinand-koenig/resmetric](https://github.com/ferdinand-koenig/resmetric)
 - 🧾 Artefact / Code DOI: [doi.org/10.5281/zenodo.14724651](https://doi.org/10.5281/zenodo.14724651)
-- 📄 arXiv Preprint: _to be defined_
+- 📄 arXiv Preprint: [arXiv:2501.18245](https://arxiv.org/abs/2501.18245)
 - 📘 SEAMS Proceedings: _to be published_
 
-**Please cite both the associated paper and the artefact when using `ResMetric`.**
+**Please cite both the associated paper and the artefact when using `ResMetric`.** The relevant BibTeX entries can be
+found in the [appendix](#appendix) of this README.
 
 ## Key Features
 - **Separation of Dip-Agnostic ([T-Ag]) and Dip-Dependent Metrics ([T-Dip])**: Analyze your performance graph w.r.t. resilience and 'antifragility' (See *Getting Started* Section)
@@ -443,7 +447,11 @@ The associated research paper is a collaborative effort.
 — _Ferdinand Koenig_
 
 ## License
-<p xmlns:cc="http://creativecommons.org/ns#" xmlns:dct="http://purl.org/dc/terms/"><span property="dct:title">ResMetric</span> by <span property="cc:attributionName">Ferdinand Koenig</span> is licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/?ref=chooser-v1" target="_blank" rel="license noopener noreferrer" style="display:inline-block;">CC BY-NC-SA 4.0<img style="height:22px!important;margin-left:3px;vertical-align:text-bottom;" src="https://mirrors.creativecommons.org/presskit/icons/cc.svg?ref=chooser-v1" alt=""><img style="height:22px!important;margin-left:3px;vertical-align:text-bottom;" src="https://mirrors.creativecommons.org/presskit/icons/by.svg?ref=chooser-v1" alt=""><img style="height:22px!important;margin-left:3px;vertical-align:text-bottom;" src="https://mirrors.creativecommons.org/presskit/icons/nc.svg?ref=chooser-v1" alt=""><img style="height:22px!important;margin-left:3px;vertical-align:text-bottom;" src="https://mirrors.creativecommons.org/presskit/icons/sa.svg?ref=chooser-v1" alt=""></a></p>
+<a href="https://creativecommons.org/licenses/by-nc-sa/4.0/">
+  <img src="https://mirrors.creativecommons.org/presskit/buttons/88x31/png/by-nc-sa.png" width="100"/>
+</a>
+
+<p xmlns:cc="http://creativecommons.org/ns#" xmlns:dct="http://purl.org/dc/terms/"><span property="dct:title">ResMetric</span> by <span property="cc:attributionName">Ferdinand Koenig</span> is licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/?ref=chooser-v1" target="_blank" rel="license noopener noreferrer" style="display:inline-block;">CC BY-NC-SA 4.0</a></p>
 
 This license requires that reusers give credit to the creator. It allows reusers to distribute, remix, adapt, and build
 upon the material in any medium or format, for noncommercial purposes only. If others modify or adapt the material,
@@ -480,9 +488,32 @@ The virtual environment fixes this issue.
 2. **Install package via `pipx`**
    Replace `pip` by `pipx` in the installation command. This may look like
    ```bash
-   pipx install resmetric-1.0.0-py3-none-any.whl
+   pipx install resmetric
    ```
    Make sure to use the right filename for the wheel file.
 3. **You are all set up!**
 
+### Citation
+Please cite both the associated paper and the ResMetric artifact when using the software.
+```bibtex
+@software{koenig_resmetric_artefact_2025,
+  author        = {Koenig, Ferdinand},
+  title         = {ResMetric: A Python Module for Visualizing Resilience and Antifragility},
+  month         = jan,
+  year          = 2025,
+  publisher     = {Zenodo},
+  doi           = {10.5281/zenodo.14724651},
+  url           = {https://doi.org/10.5281/zenodo.14724651},
+  license       = {CC BY-NC-SA 4.0}
+}
 
+@misc{koenig2025resmetricanalyzingresilienceenable,
+  title         = {RESMETRIC: Analyzing Resilience to Enable Research on Antifragility}, 
+  author        = {Ferdinand Koenig and Marc Carwehl and Calum Imrie},
+  year          = {2025},
+  eprint        = {2501.18245},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.SE},
+  url           = {https://arxiv.org/abs/2501.18245}
+}
+```
