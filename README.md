@@ -21,7 +21,7 @@ the `metrics` submodule provides functions that can calculate the metrics indivi
 - 🐍 PyPI: [pypi.org/project/resmetric/](https://pypi.org/project/resmetric/)
 - 🛠 GitHub Repository: [github.com/ferdinand-koenig/resmetric](https://github.com/ferdinand-koenig/resmetric)
 - 🧾 Artefact / Code DOI: [doi.org/10.5281/zenodo.14724651](https://doi.org/10.5281/zenodo.14724651)
-- 📄 arXiv Preprint: _to be defined_
+- 📄 arXiv Preprint: [arXiv:2501.18245](https://arxiv.org/abs/2501.18245)
 - 📘 SEAMS Proceedings: _to be published_
 
 **Please cite both the associated paper and the artefact when using `ResMetric`.** The relevant BibTeX entries can be
@@ -497,13 +497,23 @@ The virtual environment fixes this issue.
 Please cite both the associated paper and the ResMetric artifact when using the software.
 ```bibtex
 @software{koenig_resmetric_artefact_2025,
-  author       = {Koenig, Ferdinand},
-  title        = {ResMetric: A Python Module for Visualizing Resilience and Antifragility},
-  month        = jan,
-  year         = 2025,
-  publisher    = {Zenodo},
-  doi          = {10.5281/zenodo.14724651},
-  url          = {https://doi.org/10.5281/zenodo.14724651},
-  license      = {CC BY-NC-SA 4.0}
+  author        = {Koenig, Ferdinand},
+  title         = {ResMetric: A Python Module for Visualizing Resilience and Antifragility},
+  month         = jan,
+  year          = 2025,
+  publisher     = {Zenodo},
+  doi           = {10.5281/zenodo.14724651},
+  url           = {https://doi.org/10.5281/zenodo.14724651},
+  license       = {CC BY-NC-SA 4.0}
+}
+
+@misc{koenig2025resmetricanalyzingresilienceenable,
+  title         = {RESMETRIC: Analyzing Resilience to Enable Research on Antifragility}, 
+  author        = {Ferdinand Koenig and Marc Carwehl and Calum Imrie},
+  year          = {2025},
+  eprint        = {2501.18245},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.SE},
+  url           = {https://arxiv.org/abs/2501.18245}
 }
 ```
