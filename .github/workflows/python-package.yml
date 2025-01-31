@@ -27,6 +27,8 @@ jobs:
     - name: Install from wheel
       run: |
         pip install dist/resmetric-*.whl
+    - name: Show installed packages
+      run: pip freeze
     - name: Lint with flake8
       run: |
         pip install flake8
