@@ -178,8 +178,6 @@ def create_plot_from_data(json_str, **kwargs):
         x_values = s.x if s.x is not None else np.arange(len(y_values))  # Assuming x-values are indices
 
         # Update global x limits
-        # TODO remove
-        print(x_values)
         global_x_min = min(global_x_min, x_values[0])
         global_x_max = max(global_x_max, x_values[-1])
 

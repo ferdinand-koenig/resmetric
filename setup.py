@@ -21,7 +21,7 @@ setup(
         ],
     },
     install_requires=[
-        'plotly>=5.23.0',
+        'plotly>=5.23.0,<6.0.0',
         'numpy>=1.24.4',
         'scipy>=1.10.1',
         'scikit-optimize>=0.10.2',
