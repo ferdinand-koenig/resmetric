@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='resmetric',
-    version='1.0.0rc24',
+    version='1.0.0rc25',
     description='Explore and visualize resilience metrics and antifragility in performance graphs of self-adaptive '
                 'systems.',
     long_description=open('README.md', encoding='utf-8').read(),
