@@ -257,6 +257,9 @@ print("Figure saved as 'plot.html'")
 To get started, you can download the example data `fig.json` [here](https://github.com/ferdinand-koenig/resmetric/blob/release/example/fig.json). 
 Please place the downloaded file in a subdirectory called `example` to use the examples as provided.
 
+For using your own data, create a Plotly plot as in the module example above and use`fig.write_json('plot.json')`.
+Do not use the `json` package for serialization, as Plotly will not be able to deserialize the file correctly.
+
 To illustrate the tool's capabilities with relevant data, we utilized the classification accuracy graph presented by
 Gheibi and Weyns[^1]. Although the graph is not included in their paper, it reflects the same reported results and
 can be accessed through the accompanying replication package[^2]. We added a fourth curve by incorporating the

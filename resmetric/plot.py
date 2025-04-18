@@ -176,6 +176,10 @@ def create_plot_from_data(json_str, **kwargs):
 
         y_values = s.y
         x_values = s.x if s.x is not None else np.arange(len(y_values))  # Assuming x-values are indices
+        if y_values[-1] is None:
+            # This is to make it resilient for the cases where the plots include a None value in the end
+            y_values = y_values[:-1]
+            x_values = x_values[:-1]
 
         # Update global x limits
         global_x_min = min(global_x_min, x_values[0])
@@ -301,7 +305,7 @@ def create_plot_from_data(json_str, **kwargs):
             auc_traces.append(go.Scatter(
                 name=f"AUC {s.name}",
                 legendgroup=f"AUC {s.name}",
-                x=np.arange(1, len(auc_values) + 1),
+                x=x_values[1:],
                 y=auc_values,
                 mode='lines',
                 marker=dict(color=fig.layout.template.layout.colorway[i])
@@ -311,7 +315,7 @@ def create_plot_from_data(json_str, **kwargs):
             auc_traces.append(go.Scatter(
                 name=f"AUC-exp {s.name}",
                 legendgroup=f"AUC-exp {s.name}",
-                x=np.arange(1, len(auc_values_exp) + 1),
+                x=x_values[1:],
                 y=auc_values_exp,
                 mode='lines',
                 marker=dict(color=fig.layout.template.layout.colorway[i])
@@ -321,7 +325,7 @@ def create_plot_from_data(json_str, **kwargs):
             auc_traces.append(go.Scatter(
                 name=f"AUC-inv {s.name}",
                 legendgroup=f"AUC-inv {s.name}",
-                x=np.arange(1, len(auc_values_inv) + 1),
+                x=x_values[1:],
                 y=auc_values_inv,
                 mode='lines',
                 marker=dict(color=fig.layout.template.layout.colorway[i])

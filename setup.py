@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='resmetric',
-    version='1.0.0rc24',
+    version='1.0.0rc26',
     description='Explore and visualize resilience metrics and antifragility in performance graphs of self-adaptive '
                 'systems.',
     long_description=open('README.md', encoding='utf-8').read(),
@@ -22,7 +22,7 @@ setup(
     },
     install_requires=[
         'plotly>=5.23.0,<6.0.0',
-        'numpy>=1.24.4',
+        'numpy>=1.23.5',
         'scipy>=1.10.1',
         'scikit-optimize>=0.10.2',
         'pwlf>=2.2.1'
