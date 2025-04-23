@@ -176,8 +176,10 @@ def create_plot_from_data(json_str, **kwargs):
 
         y_values = s.y
         x_values = s.x if s.x is not None else np.arange(len(y_values))  # Assuming x-values are indices
-        if y_values[-1] is None:
-            # This is to make it resilient for the cases where the plots include a None value in the end
+
+        # Important if the plot includes traces with different length
+        # Remove all trailing None values from y_values and adjust x_values accordingly
+        while y_values and y_values[-1] is None:
             y_values = y_values[:-1]
             x_values = x_values[:-1]
 
