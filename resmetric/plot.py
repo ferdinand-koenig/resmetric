@@ -166,6 +166,7 @@ def create_plot_from_data(json_str, **kwargs):
     # Initialize variables for global x limits
     global_x_min = float('inf')
     global_x_max = float('-inf')
+    y_range = [float('inf'), float('-inf')]
 
     for i, s in enumerate(series):
         s.update(
@@ -186,6 +187,9 @@ def create_plot_from_data(json_str, **kwargs):
         # Update global x limits
         global_x_min = min(global_x_min, x_values[0])
         global_x_max = max(global_x_max, x_values[-1])
+
+        y_range[0] = min(y_range[0], min(y_values))  # update overall min
+        y_range[1] = max(y_range[1], max(y_values))  # update overall max
 
         ################################################
         # Preprocessing
@@ -219,7 +223,7 @@ def create_plot_from_data(json_str, **kwargs):
                 # The problem is:
                 #   - a linear regression sometimes until t and the next one starts at t + 1
                 #     (generating a gap of [t, t+1])
-                #   - this, however is not a rule so these gaps might not be generated
+                #   - this, however, is not a rule so these gaps might not be generated
                 #   - also, a segment might be of size 2 (exactly two points)
                 # With the provided breakpoints, it is not trivial to derive the start and endpoint of a segment
                 # Solution: Use the model's function to map the points onto the segments (predict)
@@ -450,6 +454,66 @@ def create_plot_from_data(json_str, **kwargs):
                 max_dips = kwargs.get('manual_dips')
                 if not max_dips:
                     raise ValueError('No dips provided: manual_dips must hold values. See help or doc string')
+
+                # The dips should be given in index from, instead of values. The next lines of code are a sophisticated
+                # conversion
+                import bisect
+                def _round_start_down(timestamps, point):
+                    # If the point is exactly in the list, don't round
+                    if point in timestamps:
+                        return point, timestamps.index(point)
+                    # Otherwise, round down
+                    pos = bisect.bisect_right(timestamps, point)
+                    if pos > 0:
+                        return timestamps[pos - 1], pos - 1
+                    return timestamps[0], 0
+
+                def _round_end_up(timestamps, point):
+                    # If the point is exactly in the list, don't round
+                    if point in timestamps:
+                        return point, timestamps.index(point)
+                    # Otherwise, round up
+                    pos = bisect.bisect_right(timestamps, point)
+                    if pos >= len(timestamps):
+                        return timestamps[-1], len(timestamps) - 1
+                    return timestamps[pos], pos
+
+                def _convert_disruption_list(timestamps, point_pairs):
+                    results = []
+                    last_end = None
+
+                    for start_point, end_point in point_pairs:
+                        # Round start and end as needed and get their indices
+                        start_rounded, start_idx = _round_start_down(timestamps, start_point)
+                        end_rounded, end_idx = _round_end_up(timestamps, end_point)
+
+                        # Enforce that the new start cannot be before the previous end
+                        if last_end is not None and start_rounded < last_end:
+                            start_rounded, start_idx = last_end, timestamps.index(last_end)
+
+                        # If start == end after rounding, raise an error because this is invalid
+                        if start_rounded == end_rounded:
+                            # Generate the error message with the first 5 timestamps and truncation if needed
+                            first_few_timestamps = list(timestamps[:5])
+                            if len(timestamps) > 5:
+                                print(first_few_timestamps)
+                                first_few_timestamps.append('...')
+                            raise ValueError(
+                                f"Invalid disruption pair: ({start_rounded}, {end_rounded}) cannot have the same start "
+                                f"and end time. This error occurs, because your timestamps do not match the time "
+                                f"resolution of the graph. Under the hood, the algorithm tries to 1) round the start "
+                                f"down and the end up while 2) avoiding overlaps by putting the start on the last end "
+                                f"if required. In your situation, the algorithm was not able to determine timestamps. "
+                                f"In particular, at least one dip had the same start and end time after applying rules "
+                                f"1 and 2. Please provide labels that are consistent with the time resolution. ",
+                                f"Here are the first 5 timestamps (truncated if needed): {first_few_timestamps}.")
+
+                        # Append the indices of the valid disruption to the result
+                        results.append((start_idx, end_idx))
+                        last_end = end_rounded  # Update last end for the next disruption
+
+                    return results
+                max_dips = _convert_disruption_list(x_values, max_dips)
             elif dip_detection_algorithm == 'lin_reg_dips':
                 if kwargs.get('include_lin_reg', False) is False:
                     raise ValueError(f'To use {dip_detection_algorithm}, please enable include_lin_reg=True or'
@@ -469,12 +533,17 @@ def create_plot_from_data(json_str, **kwargs):
             recovery_info = get_recovery(y_values, max_dips, algorithm=recovery_algorithm)
             dip_auc_info = get_dip_auc(y_values, max_dips)
 
+            def _convert_index_notation_to_x_coordinate(timestamps, x_index):
+                return timestamps[x_index]
+
+
             # Draw the detected dips
             for max_dip, info in mdd_info.items():
                 # Draw Recovery Time Line
                 maximal_dips_shapes.append(
                     go.Scatter(
-                        x=[max_dip[0], max_dip[1]],
+                        x=[_convert_index_notation_to_x_coordinate(x_values, max_dip[0]),
+                           _convert_index_notation_to_x_coordinate(x_values, max_dip[1])],
                         y=[y_values[max_dip[0]], y_values[max_dip[0]]],
                         mode='lines',
                         line=dict(dash='dot', color=fig.layout.template.layout.colorway[i]),
@@ -484,7 +553,7 @@ def create_plot_from_data(json_str, **kwargs):
                 )
                 maximal_dips_shapes.append(
                     go.Scatter(
-                        x=[max_dip[1]],
+                        x=[_convert_index_notation_to_x_coordinate(x_values, max_dip[1])],
                         y=[y_values[max_dip[0]]],
                         mode='markers',
                         marker=dict(symbol='x', color=fig.layout.template.layout.colorway[i]),
@@ -495,7 +564,8 @@ def create_plot_from_data(json_str, **kwargs):
                 # Draw Maximal Drawdown
                 maximal_dips_shapes.append(
                     go.Scatter(
-                        x=[info['line'][0][0], info['line'][1][0]],
+                        x=[_convert_index_notation_to_x_coordinate(x_values, info['line'][0][0]),
+                           _convert_index_notation_to_x_coordinate(x_values, info['line'][1][0])],
                         y=[info['line'][0][1], info['line'][1][1]],
                         mode='lines',
                         line=dict(color=fig.layout.template.layout.colorway[i], width=2, dash='dash'),
@@ -508,7 +578,7 @@ def create_plot_from_data(json_str, **kwargs):
                     # And make bars for the AUC of each dip
                     dip_auc_bars.append(
                         go.Bar(
-                            x=[max_dip[1]],
+                            x=[_convert_index_notation_to_x_coordinate(x_values, max_dip[1])],
                             y=[dip_auc_info[max_dip]],
                             width=1,
                             marker=dict(color=fig.layout.template.layout.colorway[i]),
@@ -527,7 +597,8 @@ def create_plot_from_data(json_str, **kwargs):
             for _, recovery in recovery_info.items():
                 maximal_dips_shapes.append(
                     go.Scatter(
-                        x=[recovery['line'][0][0], recovery['line'][1][0]],
+                        x=[_convert_index_notation_to_x_coordinate(x_values, recovery['line'][0][0]),
+                           _convert_index_notation_to_x_coordinate(x_values, recovery['line'][1][0])],
                         y=[recovery['line'][0][1], recovery['line'][1][1]],
                         mode='lines',
                         line=dict(dash='dot', color=fig.layout.template.layout.colorway[i]),
@@ -543,7 +614,7 @@ def create_plot_from_data(json_str, **kwargs):
                 for max_dip, info in mdd_info.items():
                     maximal_dips_bars.append(
                         go.Bar(
-                            x=[info['line'][0][0]],
+                            x=[_convert_index_notation_to_x_coordinate(x_values, info['line'][0][0])],
                             y=[mdd_to_robustness(info['value'])],
                             width=1,
                             marker=dict(color=fig.layout.template.layout.colorway[i]),
@@ -560,7 +631,7 @@ def create_plot_from_data(json_str, **kwargs):
                     )
                     maximal_dips_bars.append(
                         go.Bar(
-                            x=[max_dip[1]],
+                            x=[_convert_index_notation_to_x_coordinate(x_values, max_dip[1])],
                             y=[dip_to_recovery_rate(max_dip)],
                             width=1,
                             marker=dict(color=fig.layout.template.layout.colorway[i]),
@@ -578,7 +649,7 @@ def create_plot_from_data(json_str, **kwargs):
                 for _, recovery in recovery_info.items():
                     maximal_dips_bars.append(
                         go.Bar(
-                            x=[recovery['line'][0][0]],
+                            x=[_convert_index_notation_to_x_coordinate(x_values, recovery['line'][0][0])],
                             y=[recovery['relative_recovery']],
                             width=1,
                             marker=dict(color=fig.layout.template.layout.colorway[i]),
@@ -601,7 +672,7 @@ def create_plot_from_data(json_str, **kwargs):
                 for dip, irm_value in irm.items():
                     irm_bars.append(
                         go.Bar(
-                            x=[dip[1]],
+                            x=[_convert_index_notation_to_x_coordinate(x_values, dip[1])],
                             y=[irm_value],
                             width=1,
                             marker=dict(color=fig.layout.template.layout.colorway[i],
@@ -625,7 +696,7 @@ def create_plot_from_data(json_str, **kwargs):
                         continue
                     irm_bars.append(
                         go.Scatter(
-                            x=[dip[1]],
+                            x=[_convert_index_notation_to_x_coordinate(x_values, dip[1])],
                             y=[0],  # Match the zero value
                             mode='markers',
                             marker=dict(size=10, color='rgba(0,0,0,0)'),  # Invisible marker
@@ -698,6 +769,9 @@ def create_plot_from_data(json_str, **kwargs):
 
     # Update layout to include secondary y-axes
     fig.update_layout(
+        yaxis1=dict(
+            range=[y_range[0], y_range[1] * 1.1],
+        ),
         yaxis2=dict(
             title='Time below Threshold',
             overlaying='y',

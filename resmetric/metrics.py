@@ -840,10 +840,28 @@ def get_max_dip_integrated_resilience_metric(y_values, max_dips):
         t_r = t_d + min_index  # The index where the minimum occurs
 
         # Assert that t_r is not equal to t_d to avoid division by zero in RAPI_DP calculation
-        assert t_r != t_d, "t_r must not be equal to t_d. Check your dip detection algorithm."
+        if t_r == t_d:
+            raise ValueError(f"[IRM Calculation Error] t_r must not be equal to t_d. This error occurs in the IRM "
+                             f"calculation. There are "
+                             f"cases, where a dip does not have any point below the start point. This can happen "
+                             f"either by defining manual dips or if in linear regression the regression line was too "
+                             f"steep. A solution to deal with the error is yet to implemented. Feel free to "
+                             f"contribute! For now, the workarounds include: use a different dip detection algorithm "
+                             f"or define the dips differently. You can also try to remove the trace with which the "
+                             f"error occurs or simply not use IRM in your analysis. You can also try to improve the "
+                             f"IRM once another time.")
 
         # Assert that Q_t_d - Q_t_r is not zero to avoid division by zero in RA calculation
-        assert (Q_t_d - Q_t_r) != 0, "Q_t_d - Q_t_r must not be zero. Check your dip detection algorithm."
+        if Q_t_d == Q_t_r:
+            raise ValueError(f"[IRM Calculation Error] Q_t_d - Q_t_r must not be zero. This error occurs in the IRM "
+                             f"calculation. There are "
+                             f"cases, where a dip does not have any point below the start point. This can happen "
+                             f"either by defining manual dips or if in linear regression the regression line was too "
+                             f"steep. A solution to deal with the error is yet to implemented. Feel free to "
+                             f"contribute! For now, the workarounds include: use a different dip detection algorithm "
+                             f"or define the dips differently. You can also try to remove the trace with which the "
+                             f"error occurs or simply not use IRM in your analysis. You can also try to improve the "
+                             f"IRM once another time.")
 
         # Calculate RAPI
         RAPI_DP = (Q_t_d - Q_t_r) / (t_r - t_d)  # Rate of performance decline
