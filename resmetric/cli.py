@@ -17,7 +17,7 @@ def plot_from_json_file(json_file, silent=False, save_path=None, **kwargs):
     - save_path (str, optional): Path to save the figure as a static HTML file.
     - **kwargs: Optional keyword arguments to control trace inclusion and analysis.
     """
-    with open(json_file, 'r') as f:
+    with open(json_file, 'r', encoding="utf-8") as f:
         data = f.read()
     fig = create_plot_from_data(data, **kwargs)
 
@@ -116,7 +116,7 @@ def parse_manual_dips(dip_string):
         for i in range(len(dips) - 1):
             t0, t1 = dips[i]
             t2, t3 = dips[i + 1]
-            if not (t0 > t1 >= t2 > t3):
+            if not (t0 < t1 and t1 <= t2 and t2 < t3):
                 raise ValueError(f"Invalid order in tuples: {dips[i]} and {dips[i + 1]}.")
 
         return dips
