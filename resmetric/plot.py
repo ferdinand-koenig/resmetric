@@ -191,6 +191,9 @@ def create_plot_from_data(json_str, **kwargs):
         y_range[0] = min(y_range[0], min(y_values))  # update overall min
         y_range[1] = max(y_range[1], max(y_values))  # update overall max
 
+        # Size of the small bars
+        small_bar_size = max(max(x_values) // 130, 1)
+
         ################################################
         # Preprocessing
         # Append smooth criminal traces if requested
@@ -580,7 +583,7 @@ def create_plot_from_data(json_str, **kwargs):
                         go.Bar(
                             x=[_convert_index_notation_to_x_coordinate(x_values, max_dip[1])],
                             y=[dip_auc_info[max_dip]],
-                            width=1,
+                            width=small_bar_size,
                             marker=dict(color=fig.layout.template.layout.colorway[i]),
                             opacity=0.5,
                             text="A ",
@@ -616,7 +619,7 @@ def create_plot_from_data(json_str, **kwargs):
                         go.Bar(
                             x=[_convert_index_notation_to_x_coordinate(x_values, info['line'][0][0])],
                             y=[mdd_to_robustness(info['value'])],
-                            width=1,
+                            width=small_bar_size,
                             marker=dict(color=fig.layout.template.layout.colorway[i]),
                             opacity=0.5,
                             text="R ",
@@ -633,7 +636,7 @@ def create_plot_from_data(json_str, **kwargs):
                         go.Bar(
                             x=[_convert_index_notation_to_x_coordinate(x_values, max_dip[1])],
                             y=[dip_to_recovery_rate(max_dip)],
-                            width=1,
+                            width=small_bar_size,
                             marker=dict(color=fig.layout.template.layout.colorway[i]),
                             opacity=0.5,
                             text="RR",
@@ -651,7 +654,7 @@ def create_plot_from_data(json_str, **kwargs):
                         go.Bar(
                             x=[_convert_index_notation_to_x_coordinate(x_values, recovery['line'][0][0])],
                             y=[recovery['relative_recovery']],
-                            width=1,
+                            width=small_bar_size,
                             marker=dict(color=fig.layout.template.layout.colorway[i]),
                             opacity=0.5,
                             text="AC",
@@ -674,7 +677,7 @@ def create_plot_from_data(json_str, **kwargs):
                         go.Bar(
                             x=[_convert_index_notation_to_x_coordinate(x_values, dip[1])],
                             y=[irm_value],
-                            width=1,
+                            width=small_bar_size,
                             marker=dict(color=fig.layout.template.layout.colorway[i],
                                         line=dict(width=3,
                                                   color=fig.layout.template.layout.colorway[i]
